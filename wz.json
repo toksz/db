@@ -1,0 +1,39 @@
+{
+  "version": 1773094867097,
+  "niederlassungen": [
+    "Haupt"
+  ],
+  "tours": {
+    "Haupt": {
+      "2026-03-09": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-10": {
+        "pending": [
+          {
+            "id": "1773094636161_bht6q",
+            "name": "Wetzlar",
+            "created": 1773094636161,
+            "updated": 1773094866486,
+            "verladen_am": null,
+            "absender": null,
+            "empfaenger": null,
+            "fahrer": null,
+            "fahrzeug": null,
+            "frachtfuehrer": null,
+            "kommissionierliste": null,
+            "gewicht": null,
+            "frachtpreis": null,
+            "liefertermin": null,
+            "ladebereit_ab": null,
+            "besonderheiten": null,
+            "farbe": "blau"
+          }
+        ],
+        "done": []
+      }
+    }
+  },
+  "deletedTours": {}
+}

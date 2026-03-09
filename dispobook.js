@@ -320,7 +320,7 @@ function renderGrid() {
     const dc = collapsedSections.has(doneKey);
 
     const col = document.createElement('div');
-    col.className = 'day-col' + (isToday ? ' today' : '');
+    col.className = 'day-col' + (isToday ? ' today' : key < today ? ' past' : '');
     col.dataset.date = key;
 
     col.innerHTML = `
@@ -398,15 +398,15 @@ function renderTourCard(t, isDone, dateKey) {
       ${chips.length ? `<div class="tour-chips">${chips.join('')}</div>` : ''}
     </div>
     <div class="tour-btns">
-      <button class="tour-btn toggle" data-id="${t.id}" title="${isDone ? 'Zurücksetzen' : 'Als disponiert markieren'}">
+      <button class="tour-btn toggle" data-id="${t.id}" title="${isDone ? 'Zurücksetzen' : 'Als disponiert markieren'}" aria-label="${isDone ? 'Zurücksetzen' : 'Als disponiert markieren'}">
         ${isDone
       ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>`
       : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`}
       </button>
-      <button class="tour-btn detail" data-id="${t.id}" title="Bearbeiten">
+      <button class="tour-btn detail" data-id="${t.id}" title="Bearbeiten" aria-label="Bearbeiten">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <button class="tour-btn del" data-id="${t.id}" title="Löschen">
+      <button class="tour-btn del" data-id="${t.id}" title="Löschen" aria-label="Tour löschen">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -425,7 +425,7 @@ function setupCardEvents() {
   document.querySelectorAll('.tour-btn.toggle').forEach(btn =>
     btn.addEventListener('click', e => { e.stopPropagation(); toggleTourStatus(btn.dataset.id); }));
   document.querySelectorAll('.tour-btn.del').forEach(btn =>
-    btn.addEventListener('click', e => { e.stopPropagation(); deleteTour(btn.dataset.id); }));
+    btn.addEventListener('click', e => { e.stopPropagation(); openConfirmDelete(btn.dataset.id); }));
   document.querySelectorAll('.tour-btn.detail').forEach(btn =>
     btn.addEventListener('click', e => { e.stopPropagation(); openTourDetail(btn.dataset.id); }));
   document.querySelectorAll('.tour-card').forEach(card =>
@@ -460,6 +460,19 @@ function toggleTourStatus(id) {
   tour.updated = Date.now();
   scheduleSave(); render();
 }
+// ─── Confirm Delete ───────────────────────────────────────────────────────────
+let _pendingDeleteId = null;
+function openConfirmDelete(id) {
+  _pendingDeleteId = id;
+  openModal('confirmDeleteModal');
+}
+function confirmDeleteExecute() {
+  if (!_pendingDeleteId) return;
+  closeModal('confirmDeleteModal');
+  deleteTour(_pendingDeleteId);
+  _pendingDeleteId = null;
+}
+
 function deleteTour(id) {
   const found = findTour(id);
   if (!found) return;
@@ -528,9 +541,16 @@ function saveTourDetail() {
   if (!editingTourId) return;
   const found = findTour(editingTourId);
   if (!found) return;
+  const nameEl = document.getElementById('detailName');
+  const name = nameEl.value.trim();
+  if (!name) {
+    nameEl.classList.add('shake');
+    nameEl.focus();
+    setTimeout(() => nameEl.classList.remove('shake'), 400);
+    return;
+  }
   const { tour, dateKey, status: oldStatus } = found;
-  const name = document.getElementById('detailName').value.trim();
-  if (name) tour.name = name;
+  tour.name = name;
   tour.absender = document.getElementById('detailAbsender').value.trim() || null;
   tour.empfaenger = document.getElementById('detailEmpfaenger').value.trim() || null;
   tour.fahrer = document.getElementById('detailFahrer').value.trim() || null;
@@ -570,7 +590,7 @@ function saveTourDetail() {
 function deleteTourFromDetail() {
   if (!editingTourId) return;
   closeModal('tourDetailModal');
-  deleteTour(editingTourId);
+  openConfirmDelete(editingTourId);
   editingTourId = null;
 }
 
@@ -646,12 +666,15 @@ function toggleDarkMode() {
 function updateThemeUI() {
   const text = document.getElementById('themeSwitchText');
   const icon = document.getElementById('themeSwitchIcon');
+  const btn = document.getElementById('themeSwitchBtn');
   if (isDark) {
     if (text) text.textContent = 'Heller Modus';
     if (icon) icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    if (btn) btn.classList.add('theme-active');
   } else {
     if (text) text.textContent = 'Dunkler Modus';
     if (icon) icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    if (btn) btn.classList.remove('theme-active');
   }
 }
 
@@ -748,7 +771,7 @@ function toast(msg, type = '') {
 // ─── Keyboard ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    ['tourDetailModal', 'fileMenu', 'nlModal', 'importModal'].forEach(closeModal);
+    ['tourDetailModal', 'fileMenu', 'nlModal', 'importModal', 'confirmDeleteModal'].forEach(closeModal);
     if (filterPanelOpen) toggleFilterPanel();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); document.getElementById('searchInput')?.focus(); }
