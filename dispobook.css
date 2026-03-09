@@ -2519,3 +2519,115 @@ main {
 #renameModal .modal-input {
    margin-bottom: 0;
 }
+
+/* ═══════════════════════════════════════════════════════
+   EXPANDED TOUR CARDS
+═══════════════════════════════════════════════════════ */
+.tour-expanded-content {
+   margin-top: 8px;
+   padding-top: 8px;
+   border-top: 1px dashed var(--border-sm);
+   grid-template-columns: 1fr 1fr;
+   gap: 4px 8px;
+   font-size: 0.75rem;
+   color: var(--text-2);
+}
+
+.tour-exp-item {
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
+
+.tour-exp-item strong {
+   color: var(--text-3);
+   font-weight: 500;
+   margin-right: 2px;
+}
+
+.tour-card.expanded .tour-card-body {
+   padding-bottom: 2px;
+}
+
+.tour-btn.expand {
+   margin-right: auto;
+   color: var(--text-4);
+}
+
+.tour-btn.expand:hover {
+   color: var(--primary);
+   background: var(--surface-3);
+}
+
+.tour-exp-atts {
+   grid-column: 1 / -1;
+   margin-top: 4px;
+   color: var(--primary);
+   font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STAMMDATEN MODAL
+═══════════════════════════════════════════════════════ */
+.sd-tabs {
+   display: flex;
+   gap: 8px;
+   margin-bottom: 20px;
+   border-bottom: 1px solid var(--border-sm);
+   padding-bottom: 8px;
+}
+
+.sd-tab {
+   background: transparent;
+   border: none;
+   color: var(--text-3);
+   font-size: 0.9rem;
+   font-weight: 500;
+   padding: 6px 12px;
+   cursor: pointer;
+   border-radius: var(--r-sm);
+   transition: all 0.2s;
+}
+
+.sd-tab:hover {
+   color: var(--text-1);
+   background: var(--surface-2);
+}
+
+.sd-tab.active {
+   color: var(--primary);
+   background: var(--surface-3);
+}
+
+.sd-item {
+   background: var(--surface-2);
+   border: 1px solid var(--border);
+   border-radius: var(--r-md);
+   padding: 12px;
+   margin-bottom: 8px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+}
+
+.sd-item-content {
+   flex: 1;
+}
+
+.sd-item-title {
+   font-weight: 600;
+   color: var(--text-1);
+   margin-bottom: 4px;
+}
+
+.sd-item-desc {
+   font-size: 0.8rem;
+   color: var(--text-3);
+}
+
+.sd-add-form {
+   background: var(--surface-3);
+   padding: 16px;
+   border-radius: var(--r-lg);
+   margin-bottom: 16px;
+}

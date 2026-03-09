@@ -303,6 +303,14 @@
         </button>
         <div class="menu-section-divider"></div>
         <div class="menu-section-label">Einstellungen</div>
+        <button class="modal-menu-item" onclick="openStammdatenModal(); closeModal('fileMenu');">
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg></span>
+          Stammdaten verwalten
+        </button>
         <button class="modal-menu-item" id="themeSwitchBtn" onclick="toggleDarkMode()">
           <span id="themeSwitchIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round">
@@ -328,12 +336,16 @@
         </svg></button>
       <div class="modal-title">Tour bearbeiten</div>
 
-      <!-- Row 1: Name + Status + Color -->
+      <!-- Row 1: Bezeichnung + Transportnummer + Status -->
       <div class="detail-row detail-row-name">
-        <div class="detail-field">
-          <label class="modal-label" for="detailName">Zielort / Bezeichnung<span class="required-star"
+        <div class="detail-field" style="flex:2">
+          <label class="modal-label" for="detailName">Bezeichnung<span class="required-star"
               aria-hidden="true">*</span></label>
           <input class="modal-input" type="text" id="detailName" placeholder="z.B. Hamburg, Kundenbesuch…" required>
+        </div>
+        <div class="detail-field" style="flex:1">
+          <label class="modal-label">Strieder Transportnr.</label>
+          <input class="modal-input" type="text" id="detailTransportnummer" placeholder="TR-…">
         </div>
         <div class="detail-field detail-field-narrow">
           <label class="modal-label">Status</label>
@@ -344,21 +356,52 @@
         </div>
       </div>
 
-      <!-- Color Picker -->
-      <div class="detail-field" style="margin-bottom:18px">
-        <label class="modal-label">Kategorie / Farbe</label>
-        <div id="detailColorPicker" class="color-picker-row"></div>
+      <!-- Color Picker & Tourtyp -->
+      <div class="detail-row detail-row-2" style="margin-bottom:18px">
+        <div class="detail-field">
+          <label class="modal-label">Kategorie / Farbe</label>
+          <div id="detailColorPicker" class="color-picker-row"></div>
+        </div>
+        <div class="detail-field">
+          <label class="modal-label">Tourtyp</label>
+          <select class="modal-input modal-select" id="detailTourtyp">
+            <option value="">Auswählen…</option>
+            <option value="Direktfahrt">Direktfahrt</option>
+            <option value="Sammeltour">Sammeltour</option>
+            <option value="Rückladung">Rückladung</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Row 2: Absender + Empfänger -->
-      <div class="detail-row detail-row-2">
+      <!-- Row: Startort + Absender + Empfänger -->
+      <div class="detail-row detail-row-3">
+        <div class="detail-field">
+          <label class="modal-label">Startort / Abfahrtsadr.</label>
+          <input class="modal-input" type="text" id="detailStartort" placeholder="Firma, Ort…" list="dl-adressen">
+        </div>
         <div class="detail-field">
           <label class="modal-label">Absender</label>
-          <input class="modal-input" type="text" id="detailAbsender" placeholder="Firma, Ort…" list="dl-absender">
+          <input class="modal-input" type="text" id="detailAbsender" placeholder="Firma, Ort…" list="dl-adressen">
         </div>
         <div class="detail-field">
           <label class="modal-label">Empfänger</label>
-          <input class="modal-input" type="text" id="detailEmpfaenger" placeholder="Firma, Ort…" list="dl-empfaenger">
+          <input class="modal-input" type="text" id="detailEmpfaenger" placeholder="Firma, Ort…" list="dl-adressen">
+        </div>
+      </div>
+
+      <!-- Empfänger Extras -->
+      <div class="detail-row detail-row-3">
+        <div class="detail-field">
+          <label class="modal-label">Empf. Ansprechp. & Tel</label>
+          <input class="modal-input" type="text" id="detailEmpfAnsprechpartner" placeholder="Name, Telefon…">
+        </div>
+        <div class="detail-field">
+          <label class="modal-label">Empf. Rampe / Tor</label>
+          <input class="modal-input" type="text" id="detailEmpfRampe" placeholder="z.B. Tor 4">
+        </div>
+        <div class="detail-field">
+          <label class="modal-label">Empf. Zeitfenster</label>
+          <input class="modal-input" type="text" id="detailEmpfZeitfenster" placeholder="z.B. 08:00–12:00">
         </div>
       </div>
 
@@ -374,19 +417,50 @@
         </div>
         <div class="detail-field">
           <label class="modal-label">Frachtführer (extern)</label>
-          <input class="modal-input" type="text" id="detailFrachtfuehrer" placeholder="Subunternehmer…">
+          <input class="modal-input" type="text" id="detailFrachtfuehrer" placeholder="Subunternehmer…"
+            list="dl-frachtfuehrer">
         </div>
       </div>
 
-      <!-- Row 4: KL + Gewicht + Preis -->
-      <div class="detail-row detail-row-3">
+      <div class="detail-field" style="margin-bottom:15px; border-top:1px solid var(--border-sm); padding-top:15px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <label class="modal-label" style="margin:0">Sendungspositionen</label>
+          <button class="modal-btn-ghost" type="button" onclick="addPositionRow()"
+            style="padding:4px 8px;font-size:0.7rem">
+            + Position hinzufügen
+          </button>
+        </div>
+        <div id="positionsContainer" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div
+          style="display:flex;gap:12px;margin-top:10px;padding:10px;background:var(--surface-2);border-radius:var(--r-md)">
+          <div style="font-size:0.8rem;color:var(--text-3)">Gesamtgewicht: <strong id="calcTotalWeight"
+              style="color:var(--text-1)">0</strong> kg</div>
+          <div style="font-size:0.8rem;color:var(--text-3)">Lademeter: <strong id="calcTotalLdm"
+              style="color:var(--text-1)">0.00</strong> LDM</div>
+        </div>
+      </div>
+
+      <!-- Row 4: Referenz + KL -->
+      <div class="detail-row detail-row-2">
+        <div class="detail-field">
+          <label class="modal-label">Kundenreferenz / Auftragsnr.</label>
+          <input class="modal-input" type="text" id="detailReferenznummer" placeholder="Auftrag…">
+        </div>
         <div class="detail-field">
           <label class="modal-label">Kommissionierliste</label>
           <input class="modal-input" type="text" id="detailKommissionierliste" placeholder="KL-2026-…">
         </div>
+      </div>
+
+      <!-- Row 5: Termin + Verladen + Frachtpreis -->
+      <div class="detail-row detail-row-3">
         <div class="detail-field">
-          <label class="modal-label">Gewicht (kg)</label>
-          <input class="modal-input" type="number" id="detailGewicht" placeholder="0" min="0" step="0.1">
+          <label class="modal-label">Liefertermin ⚑</label>
+          <input class="modal-input" type="datetime-local" id="detailLiefertermin">
+        </div>
+        <div class="detail-field">
+          <label class="modal-label">Verladen am</label>
+          <input class="modal-input" type="datetime-local" id="detailVerladen">
         </div>
         <div class="detail-field">
           <label class="modal-label">Frachtpreis (€)</label>
@@ -394,27 +468,27 @@
         </div>
       </div>
 
-      <!-- Row 5: Liefertermin + Ladebereit + Verladen -->
-      <div class="detail-row detail-row-3">
-        <div class="detail-field">
-          <label class="modal-label">Liefertermin ⚑</label>
-          <input class="modal-input" type="datetime-local" id="detailLiefertermin">
-        </div>
-        <div class="detail-field">
-          <label class="modal-label">Ladebereit ab</label>
-          <input class="modal-input" type="datetime-local" id="detailLadebereit">
-        </div>
-        <div class="detail-field">
-          <label class="modal-label">Verladen am</label>
-          <input class="modal-input" type="datetime-local" id="detailVerladen">
-        </div>
-      </div>
-
       <!-- Besonderheiten -->
       <div class="detail-field">
         <label class="modal-label">Besonderheiten</label>
         <textarea class="modal-input modal-textarea" id="detailBesonderheiten"
-          placeholder="Hinweise, Sonderanforderungen, Temperatur…" rows="3"></textarea>
+          placeholder="Hinweise, Sonderanforderungen, Temperatur…" rows="2"></textarea>
+      </div>
+
+      <!-- Anhänge DMS -->
+      <div class="detail-field" style="margin-top:15px; border-top:1px solid var(--border-sm); padding-top:15px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <label class="modal-label" style="margin:0">Anhänge / Dokumente (OneDrive Links)</label>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" class="modal-input" id="newAttachmentUrl" placeholder="Link einfügen…"
+            style="margin:0;flex:1">
+          <input type="text" class="modal-input" id="newAttachmentName" placeholder="Name (opt)"
+            style="margin:0;width:120px">
+          <button class="modal-btn-ghost" type="button" onclick="addAttachment()"
+            style="padding:0 12px">Hinzufügen</button>
+        </div>
+        <div id="attachmentsContainer" style="display:flex;flex-wrap:wrap;gap:8px"></div>
       </div>
 
       <div class="modal-actions">
@@ -511,6 +585,38 @@
 
   <input type="file" id="importFileInput" accept=".txt,.csv" style="display:none" onchange="loadImportFile(event)">
   <div id="toast-stack"></div>
+
+  <!-- STAMMDATEN MODAL -->
+  <div class="modal-backdrop" id="stammdatenModal-backdrop" onclick="closeModal('stammdatenModal')"></div>
+  <div class="modal" id="stammdatenModal">
+    <div class="modal-content modal-content-wide">
+      <button class="modal-close" onclick="closeModal('stammdatenModal')"><svg width="14" height="14"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg></button>
+      <div class="modal-title">Stammdaten</div>
+      <div class="modal-sub">Zentrale Verwaltung für Auto-Fill in Touren.</div>
+
+      <div class="sd-tabs">
+        <button class="sd-tab active" onclick="switchSdTab('fahrer')">Fahrer</button>
+        <button class="sd-tab" onclick="switchSdTab('fahrzeuge')">Fahrzeuge</button>
+        <button class="sd-tab" onclick="switchSdTab('frachtfuehrer')">Frachtführer</button>
+        <button class="sd-tab" onclick="switchSdTab('adressen')">Adressen</button>
+      </div>
+
+      <div class="sd-content" id="sdContentFahrer">
+        <!-- Generiert via JS -->
+      </div>
+      <div class="sd-content" id="sdContentFahrzeuge" style="display:none"></div>
+      <div class="sd-content" id="sdContentFrachtfuehrer" style="display:none"></div>
+      <div class="sd-content" id="sdContentAdressen" style="display:none"></div>
+
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="modal-btn-ghost" onclick="closeModal('stammdatenModal')">Verlassen</button>
+      </div>
+    </div>
+  </div>
 
   <!-- CONFIRM DELETE MODAL -->
   <div class="modal-backdrop" id="confirmDeleteModal-backdrop" onclick="closeModal('confirmDeleteModal')"></div>

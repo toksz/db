@@ -84,18 +84,39 @@ const DAY_NAMES = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'S
 
 // ─── Address Book ─────────────────────────────────────────────────────────────
 function collectAddressBook() {
-  const sets = { absender: new Set(), empfaenger: new Set(), fahrer: new Set(), fahrzeug: new Set() };
+  const sets = { adressen: new Set(), fahrer: new Set(), fahrzeug: new Set(), frachtfuehrer: new Set() };
+
+  // From History
   for (const nlKey of Object.keys(db.tours || {})) {
     for (const day of Object.values(db.tours[nlKey] || {})) {
       for (const t of [...(day.pending || []), ...(day.done || [])]) {
-        if (t.absender) sets.absender.add(t.absender);
-        if (t.empfaenger) sets.empfaenger.add(t.empfaenger);
+        if (t.absender) sets.adressen.add(t.absender);
+        if (t.empfaenger) sets.adressen.add(t.empfaenger);
+        if (t.startort) sets.adressen.add(t.startort);
         if (t.fahrer) sets.fahrer.add(t.fahrer);
         if (t.fahrzeug) sets.fahrzeug.add(t.fahrzeug);
+        if (t.frachtfuehrer) sets.frachtfuehrer.add(t.frachtfuehrer);
       }
     }
   }
-  return { absender: [...sets.absender], empfaenger: [...sets.empfaenger], fahrer: [...sets.fahrer], fahrzeug: [...sets.fahrzeug] };
+
+  // From Stammdaten (highest priority autocomplete)
+  if (db.stammdaten) {
+    db.stammdaten.fahrer?.forEach(f => sets.fahrer.add(f.name));
+    db.stammdaten.fahrzeuge?.forEach(f => sets.fahrzeug.add(f.kz));
+    db.stammdaten.adressen?.forEach(a => {
+      const full = a.name + (a.ort ? ', ' + a.ort : '');
+      sets.adressen.add(full);
+    });
+    db.stammdaten.frachtfuehrer?.forEach(f => sets.frachtfuehrer.add(f.firma));
+  }
+
+  return {
+    adressen: [...sets.adressen],
+    fahrer: [...sets.fahrer],
+    fahrzeug: [...sets.fahrzeug],
+    frachtfuehrer: [...sets.frachtfuehrer]
+  };
 }
 function rebuildDatalist(id, items) {
   let dl = document.getElementById(id);
@@ -116,7 +137,7 @@ async function pickFile() {
 async function createNewFile() {
   try {
     fileHandle = await window.showSaveFilePicker({ suggestedName: 'data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
-    db = { version: Date.now(), niederlassungen: ['Haupt'], tours: { 'Haupt': {} }, deletedTours: {} };
+    db = { version: Date.now(), niederlassungen: ['Haupt'], tours: { 'Haupt': {} }, deletedTours: {}, stammdaten: { fahrer: [], fahrzeuge: [], frachtfuehrer: [], adressen: [] } };
     await saveFile(); lastSavedVersion = db.version; initApp();
   } catch (e) { if (e.name !== 'AbortError') toast('Fehler beim Erstellen: ' + e.message, 'error'); }
 }
@@ -160,6 +181,7 @@ function initApp() {
   currentWeekStart = getMonday(new Date());
   isDark = localStorage.getItem('darkMode') === '1';
   if (isDark) document.documentElement.classList.add('dark-mode');
+  if (!db.stammdaten) db.stammdaten = { fahrer: [], fahrzeuge: [], frachtfuehrer: [], adressen: [] }; // Format migration
   updateThemeUI(); render();
   setInterval(pollFile, 8000);
 }
@@ -387,7 +409,21 @@ function renderTourCard(t, isDone, dateKey) {
   }
   if (t.besonderheiten) chips.push(`<span class="tc-chip tc-chip-warn" title="${escHtml(t.besonderheiten)}">⚠</span>`);
 
-  return `<div class="tour-card ${isDone ? 'done' : ''} ${color ? 'tour-card-colored' : ''}" draggable="true" data-id="${t.id}" ${colorStyle}>
+  const expItems = [];
+  if (t.startort) expItems.push(`<div><strong>Start:</strong> ${escHtml(t.startort)}</div>`);
+  if (t.empfaenger) expItems.push(`<div><strong>Ziel:</strong> ${escHtml(t.empfaenger)}</div>`);
+  if (t.empf_zeitfenster) expItems.push(`<div><strong>Zeit:</strong> ${escHtml(t.empf_zeitfenster)}</div>`);
+  if (t.tourtyp) expItems.push(`<div><strong>Typ:</strong> ${escHtml(t.tourtyp)}</div>`);
+  if (t.referenznummer) expItems.push(`<div><strong>Ref:</strong> ${escHtml(t.referenznummer)}</div>`);
+  if (t.transportnummer) expItems.push(`<div><strong>TR:</strong> ${escHtml(t.transportnummer)}</div>`);
+  if (t.lademeter) expItems.push(`<div><strong>LDM:</strong> ${t.lademeter}</div>`);
+  if (t.fahrer || t.fahrzeug) expItems.push(`<div><strong>Fahrer/Fzg:</strong> ${escHtml(t.fahrer || '')} ${escHtml(t.fahrzeug || '')}</div>`);
+  if (t.attachments && t.attachments.length) expItems.push(`<div>📎 ${t.attachments.length} Anhang</div>`);
+
+  const hasExp = expItems.length > 0;
+  const isExpanded = _expandedCards.has(t.id);
+
+  return `<div class="tour-card ${isDone ? 'done' : ''} ${color ? 'tour-card-colored' : ''} ${isExpanded ? 'expanded' : ''}" draggable="true" data-id="${t.id}" ${colorStyle}>
     <span class="tour-drag-handle">⠿</span>
     <div class="tour-card-body">
       <div class="tour-name-row">
@@ -396,8 +432,12 @@ function renderTourCard(t, isDone, dateKey) {
       </div>
       ${t.empfaenger ? `<div class="tour-empfaenger">📦 ${escHtml(t.empfaenger)}</div>` : ''}
       ${chips.length ? `<div class="tour-chips">${chips.join('')}</div>` : ''}
+      ${hasExp ? `<div class="tour-expanded-content" style="display:${isExpanded ? 'grid' : 'none'}">${expItems.join('')}</div>` : ''}
     </div>
     <div class="tour-btns">
+      ${hasExp ? `<button class="tour-btn expand" data-id="${t.id}" title="Details ein-/ausblenden" aria-label="Details ein-/ausblenden">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="${isExpanded ? '18 15 12 9 6 15' : '6 9 12 15 18 9'}"/></svg>
+      </button>` : ''}
       <button class="tour-btn toggle" data-id="${t.id}" title="${isDone ? 'Zurücksetzen' : 'Als disponiert markieren'}" aria-label="${isDone ? 'Zurücksetzen' : 'Als disponiert markieren'}">
         ${isDone
       ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>`
@@ -421,7 +461,16 @@ function toggleSection(key) {
 }
 
 // ─── Card Events ──────────────────────────────────────────────────────────────
+let _expandedCards = new Set();
 function setupCardEvents() {
+  document.querySelectorAll('.tour-btn.expand').forEach(btn =>
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      if (_expandedCards.has(id)) _expandedCards.delete(id);
+      else _expandedCards.add(id);
+      renderGrid(); // Quick re-render to update expand state
+    }));
   document.querySelectorAll('.tour-btn.toggle').forEach(btn =>
     btn.addEventListener('click', e => { e.stopPropagation(); toggleTourStatus(btn.dataset.id); }));
   document.querySelectorAll('.tour-btn.del').forEach(btn =>
@@ -588,23 +637,33 @@ function addTourFromBar() {
   openModal('addPromptModal');
 }
 function addTourKeyDown(e) { if (e.key === 'Enter') addTourFromBar(); }
+let editingStagingId = null;
+
 function addPromptGoDetail() {
   closeModal('addPromptModal');
   if (!_addPromptLastId) return;
-  // The tour is still in staging. Open detail modal in "staging" mode so user can fill details,
-  // then on save it gets placed — for simplicity we open the detail modal with a temp day = today.
   const t = stagingTours.find(s => s.id === _addPromptLastId);
   if (!t) return;
-  // Place it on today first, then open detail
-  const today = fmt(new Date());
-  if (!db.tours[currentNL]) db.tours[currentNL] = {};
-  if (!db.tours[currentNL][today]) db.tours[currentNL][today] = { pending: [], done: [] };
-  const tour = { id: t.id, name: t.name, created: Date.now(), updated: Date.now() };
-  db.tours[currentNL][today].pending.push(tour);
-  stagingTours = stagingTours.filter(s => s.id !== t.id);
-  scheduleSave(); render();
-  openTourDetail(t.id);
   _addPromptLastId = null;
+  editingStagingId = t.id;
+  editingTourId = null;
+  const map = {
+    detailName: t.name, detailAbsender: '', detailEmpfaenger: '',
+    detailFahrer: '', detailFahrzeug: '', detailFrachtfuehrer: '',
+    detailKommissionierliste: '', detailGewicht: '',
+    detailFrachtpreis: '', detailBesonderheiten: '',
+    detailLiefertermin: '', detailLadebereit: '', detailVerladen: '',
+    detailTransportnummer: '', detailTourtyp: '', detailStartort: '',
+    detailEmpfAnsprechpartner: '', detailEmpfRampe: '', detailEmpfZeitfenster: '',
+    detailReferenznummer: ''
+  };
+  for (const [fid, val] of Object.entries(map)) {
+    const el = document.getElementById(fid);
+    if (el) el.value = val;
+  }
+  document.getElementById('detailStatus').value = 'pending';
+  renderColorPicker('');
+  openModal('tourDetailModal');
 }
 
 // ─── Tour Detail Modal ────────────────────────────────────────────────────────
@@ -618,6 +677,9 @@ function openTourDetail(id) {
     detailFahrer: tour.fahrer, detailFahrzeug: tour.fahrzeug, detailFrachtfuehrer: tour.frachtfuehrer,
     detailKommissionierliste: tour.kommissionierliste, detailGewicht: tour.gewicht,
     detailFrachtpreis: tour.frachtpreis, detailBesonderheiten: tour.besonderheiten,
+    detailTransportnummer: tour.transportnummer, detailTourtyp: tour.tourtyp, detailStartort: tour.startort,
+    detailEmpfAnsprechpartner: tour.empf_ansprechpartner, detailEmpfRampe: tour.empf_rampe, detailEmpfZeitfenster: tour.empf_zeitfenster,
+    detailReferenznummer: tour.referenznummer
   };
   for (const [fid, val] of Object.entries(map)) {
     const el = document.getElementById(fid);
@@ -630,6 +692,14 @@ function openTourDetail(id) {
   }
   document.getElementById('detailStatus').value = status;
   renderColorPicker(tour.farbe || '');
+
+  // Render dynamic lists
+  currentPositions = JSON.parse(JSON.stringify(tour.positionen || []));
+  renderPositions();
+
+  currentAttachments = JSON.parse(JSON.stringify(tour.attachments || []));
+  renderAttachments();
+
   openModal('tourDetailModal');
 }
 function renderColorPicker(selected) {
@@ -643,9 +713,10 @@ function selectColor(id) { renderColorPicker(id); _colorPickerValue = id; }
 let _colorPickerValue = '';
 
 function saveTourDetail() {
-  if (!editingTourId) return;
-  const found = findTour(editingTourId);
-  if (!found) return;
+  if (!editingTourId && !editingStagingId) return;
+  const found = editingTourId ? findTour(editingTourId) : null;
+  if (editingTourId && !found) return;
+
   const nameEl = document.getElementById('detailName');
   const name = nameEl.value.trim();
   if (!name) {
@@ -654,40 +725,68 @@ function saveTourDetail() {
     setTimeout(() => nameEl.classList.remove('shake'), 400);
     return;
   }
-  const { tour, dateKey, status: oldStatus } = found;
-  tour.name = name;
-  tour.absender = document.getElementById('detailAbsender').value.trim() || null;
-  tour.empfaenger = document.getElementById('detailEmpfaenger').value.trim() || null;
-  tour.fahrer = document.getElementById('detailFahrer').value.trim() || null;
-  tour.fahrzeug = document.getElementById('detailFahrzeug').value.trim() || null;
-  tour.frachtfuehrer = document.getElementById('detailFrachtfuehrer').value.trim() || null;
-  tour.kommissionierliste = document.getElementById('detailKommissionierliste').value.trim() || null;
-  const g = parseFloat(document.getElementById('detailGewicht').value);
-  tour.gewicht = isNaN(g) ? null : g;
-  const p = parseFloat(document.getElementById('detailFrachtpreis').value);
-  tour.frachtpreis = isNaN(p) ? null : p;
-  tour.liefertermin = document.getElementById('detailLiefertermin').value || null;
-  tour.ladebereit_ab = document.getElementById('detailLadebereit').value || null;
-  tour.verladen_am = document.getElementById('detailVerladen').value || null;
-  tour.besonderheiten = document.getElementById('detailBesonderheiten').value.trim() || null;
 
-  // Read color from picker state
+  const tourObj = editingTourId ? found.tour : stagingTours.find(t => t.id === editingStagingId);
+  if (!tourObj) return;
+
+  tourObj.name = name;
+  tourObj.absender = document.getElementById('detailAbsender').value.trim() || null;
+  tourObj.empfaenger = document.getElementById('detailEmpfaenger').value.trim() || null;
+  tourObj.fahrer = document.getElementById('detailFahrer').value.trim() || null;
+  tourObj.fahrzeug = document.getElementById('detailFahrzeug').value.trim() || null;
+  tourObj.frachtfuehrer = document.getElementById('detailFrachtfuehrer').value.trim() || null;
+  tourObj.kommissionierliste = document.getElementById('detailKommissionierliste').value.trim() || null;
+  tourObj.transportnummer = document.getElementById('detailTransportnummer').value.trim() || null;
+  tourObj.tourtyp = document.getElementById('detailTourtyp').value || null;
+  tourObj.startort = document.getElementById('detailStartort').value.trim() || null;
+  tourObj.empf_ansprechpartner = document.getElementById('detailEmpfAnsprechpartner').value.trim() || null;
+  tourObj.empf_rampe = document.getElementById('detailEmpfRampe').value.trim() || null;
+  tourObj.empf_zeitfenster = document.getElementById('detailEmpfZeitfenster').value.trim() || null;
+  tourObj.referenznummer = document.getElementById('detailReferenznummer').value.trim() || null;
+
+  // Process Positions
+  syncPositionsFromDOM();
+  tourObj.positionen = currentPositions;
+  let totalW = 0, totalLdm = 0;
+  for (const pos of currentPositions) {
+    if (pos.kg) totalW += pos.kg;
+    if (pos.ldm) totalLdm += pos.ldm;
+  }
+  tourObj.gewicht = totalW > 0 ? totalW : null;
+  tourObj.lademeter = totalLdm > 0 ? parseFloat(totalLdm.toFixed(2)) : null;
+
+  // Attachments
+  tourObj.attachments = currentAttachments;
+
+  // Manual frachtpreis & dates
+  const p = parseFloat(document.getElementById('detailFrachtpreis').value);
+  tourObj.frachtpreis = isNaN(p) ? null : p;
+  tourObj.liefertermin = document.getElementById('detailLiefertermin').value || null;
+  tourObj.ladebereit_ab = document.getElementById('detailLadebereit').value || null;
+  tourObj.verladen_am = document.getElementById('detailVerladen').value || null;
+  tourObj.besonderheiten = document.getElementById('detailBesonderheiten').value.trim() || null;
+
   const selectedSwatch = document.querySelector('#detailColorPicker .color-swatch.selected');
-  tour.farbe = selectedSwatch ? selectedSwatch.getAttribute('title') !== 'Keine'
+  tourObj.farbe = selectedSwatch ? selectedSwatch.getAttribute('title') !== 'Keine'
     ? TOUR_COLORS.find(c => c.hex === selectedSwatch.style.background || c.label === selectedSwatch.title)?.id || null
     : null : null;
 
-  // Handle status change
-  const newStatus = document.getElementById('detailStatus').value;
-  if (newStatus !== oldStatus) {
-    const day = db.tours[currentNL][dateKey];
-    day[oldStatus] = day[oldStatus].filter(t => t.id !== tour.id);
-    if (!day[newStatus]) day[newStatus] = [];
-    if (newStatus === 'done' && !tour.verladen_am) tour.verladen_am = fmtDateTime(new Date());
-    if (newStatus === 'pending') tour.verladen_am = null;
-    day[newStatus].push(tour);
+  tourObj.updated = Date.now();
+
+  if (editingTourId) {
+    const { dateKey, status: oldStatus } = found;
+    const newStatus = document.getElementById('detailStatus').value;
+    if (newStatus !== oldStatus) {
+      const day = db.tours[currentNL][dateKey];
+      day[oldStatus] = day[oldStatus].filter(t => t.id !== tourObj.id);
+      if (!day[newStatus]) day[newStatus] = [];
+      if (newStatus === 'done' && !tourObj.verladen_am) tourObj.verladen_am = fmtDateTime(new Date());
+      if (newStatus === 'pending') tourObj.verladen_am = null;
+      day[newStatus].push(tourObj);
+    }
   }
-  tour.updated = Date.now();
+
+  editingStagingId = null;
   closeModal('tourDetailModal');
   scheduleSave(); render();
   toast('Tour gespeichert', 'success');
@@ -699,13 +798,120 @@ function deleteTourFromDetail() {
   editingTourId = null;
 }
 
-// ─── Autocomplete ─────────────────────────────────────────────────────────────
+// ─── Sendungspositionen ────────────────────────────────────────────────────────
+let currentPositions = [];
+
+function renderPositions() {
+  const c = document.getElementById('positionsContainer');
+  if (!c) return;
+  c.innerHTML = currentPositions.map((pos, idx) => `
+    <div class="position-row" style="display:flex;gap:4px;align-items:center;background:var(--surface-3);padding:6px;border-radius:var(--r-sm)">
+      <input type="number" class="modal-input pos-anzahl" value="${pos.anzahl || ''}" placeholder="Anz" min="1" style="width:50px;margin:0;padding:4px" onchange="calcPositions()">
+      <input type="text" class="modal-input pos-bez" value="${escHtml(pos.bez || '')}" placeholder="Artikel…" style="flex:1;margin:0;padding:4px" onchange="calcPositions()">
+      <input type="number" class="modal-input pos-kg" value="${pos.kg || ''}" placeholder="kg" min="0" step="0.1" style="width:60px;margin:0;padding:4px" onchange="calcPositions()">
+      <input type="number" class="modal-input pos-l" value="${pos.l || ''}" placeholder="L" min="0" style="width:45px;margin:0;padding:4px" onchange="calcPositions()">
+      <span style="color:var(--text-4)">×</span>
+      <input type="number" class="modal-input pos-b" value="${pos.b || ''}" placeholder="B" min="0" style="width:45px;margin:0;padding:4px" onchange="calcPositions()">
+      <span style="color:var(--text-4)">×</span>
+      <input type="number" class="modal-input pos-h" value="${pos.h || ''}" placeholder="H" min="0" style="width:45px;margin:0;padding:4px" onchange="calcPositions()">
+      <div style="font-size:0.75rem;color:var(--text-3);width:50px;text-align:right" class="pos-ldm-res">${pos.ldm ? pos.ldm.toFixed(2) : '0.00'} LDM</div>
+      <button class="modal-btn-ghost" type="button" onclick="removePositionRow(${idx})" style="padding:4px;margin-left:4px" title="Löschen">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join('');
+  calcPositions();
+}
+
+function addPositionRow() {
+  syncPositionsFromDOM();
+  currentPositions.push({ anzahl: 1, bez: '', kg: null, l: null, b: null, h: null, ldm: 0 });
+  renderPositions();
+}
+
+function removePositionRow(idx) {
+  syncPositionsFromDOM();
+  currentPositions.splice(idx, 1);
+  renderPositions();
+}
+
+function syncPositionsFromDOM() {
+  const container = document.getElementById('positionsContainer');
+  if (!container) return;
+  const rows = container.querySelectorAll('.position-row');
+  currentPositions = Array.from(rows).map(row => {
+    const pAnz = parseInt(row.querySelector('.pos-anzahl').value) || 1;
+    const pBez = row.querySelector('.pos-bez').value.trim();
+    const pKg = parseFloat(row.querySelector('.pos-kg').value) || null;
+    const pL = parseFloat(row.querySelector('.pos-l').value) || null;
+    const pB = parseFloat(row.querySelector('.pos-b').value) || null;
+    const pH = parseFloat(row.querySelector('.pos-h').value) || null;
+    // LDM berechnen: L x B / (2.4 * 10^6) * Anzahl 
+    let ldm = 0;
+    if (pL && pB) ldm = (pL * pB * pAnz) / 2400000;
+    return { anzahl: pAnz, bez: pBez, kg: pKg, l: pL, b: pB, h: pH, ldm };
+  });
+}
+
+function calcPositions() {
+  syncPositionsFromDOM();
+  let totalKg = 0;
+  let totalLdm = 0;
+  const rows = document.getElementById('positionsContainer').querySelectorAll('.position-row');
+  currentPositions.forEach((pos, i) => {
+    totalKg += pos.kg || 0;
+    totalLdm += pos.ldm || 0;
+    if (rows[i]) rows[i].querySelector('.pos-ldm-res').textContent = pos.ldm ? pos.ldm.toFixed(2) + ' LDM' : '0.00 LDM';
+  });
+  const elW = document.getElementById('calcTotalWeight');
+  const elLdm = document.getElementById('calcTotalLdm');
+  if (elW) elW.textContent = totalKg > 0 ? totalKg.toFixed(1).replace('.0', '') : '0';
+  if (elLdm) elLdm.textContent = totalLdm > 0 ? totalLdm.toFixed(2) : '0.00';
+}
+
+// ─── Attachments (DMS) ────────────────────────────────────────────────────────
+let currentAttachments = [];
+
+function renderAttachments() {
+  const c = document.getElementById('attachmentsContainer');
+  if (!c) return;
+  c.innerHTML = currentAttachments.map((att, idx) => `
+    <div style="display:flex;align-items:center;background:var(--surface-3);padding:4px 8px;border-radius:var(--r-full);font-size:0.8rem">
+      <a href="${escHtml(att.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--primary);text-decoration:none;display:flex;align-items:center;gap:4px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+        ${escHtml(att.label || 'Anhang ' + (idx + 1))}
+      </a>
+      <button class="modal-btn-ghost" type="button" onclick="removeAttachment(${idx})" style="padding:2px;margin-left:6px;min-height:auto" title="Entfernen">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function addAttachment() {
+  const urlInp = document.getElementById('newAttachmentUrl');
+  const labelInp = document.getElementById('newAttachmentName');
+  const url = urlInp.value.trim();
+  const label = labelInp.value.trim();
+  if (!url) { urlInp.classList.add('shake'); setTimeout(() => urlInp.classList.remove('shake'), 400); return; }
+  currentAttachments.push({ url, label: label || 'Link', addedAt: Date.now() });
+  urlInp.value = '';
+  labelInp.value = '';
+  renderAttachments();
+}
+
+function removeAttachment(idx) {
+  currentAttachments.splice(idx, 1);
+  renderAttachments();
+}
+
+
 function rebuildAutocomplete() {
   const book = collectAddressBook();
-  rebuildDatalist('dl-absender', book.absender);
-  rebuildDatalist('dl-empfaenger', book.empfaenger);
+  rebuildDatalist('dl-adressen', book.adressen);
   rebuildDatalist('dl-fahrer', book.fahrer);
   rebuildDatalist('dl-fahrzeug', book.fahrzeug);
+  rebuildDatalist('dl-frachtfuehrer', book.frachtfuehrer);
 }
 
 // ─── Drag & Drop ──────────────────────────────────────────────────────────────
@@ -963,6 +1169,184 @@ function confirmRename() {
   scheduleSave(); render();
   toast('Tour umbenannt', 'success');
 }
+
+// ─── Stammdaten ───────────────────────────────────────────────────────────────
+let currentSdTab = 'fahrer';
+function openStammdatenModal() {
+  currentSdTab = 'fahrer';
+  openModal('stammdatenModal');
+  switchSdTab('fahrer');
+}
+function switchSdTab(tab) {
+  currentSdTab = tab;
+  document.querySelectorAll('.sd-tab').forEach(b => {
+    const isFracht = tab === 'frachtfuehrer' && b.textContent === 'Frachtführer';
+    b.classList.toggle('active', b.textContent.toLowerCase() === tab || isFracht);
+  });
+  ['fahrer', 'fahrzeuge', 'frachtfuehrer', 'adressen'].forEach(t => {
+    const el = document.getElementById(`sdContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  renderSdTab();
+}
+function getSdForm(tab) {
+  if (tab === 'fahrer') return `<div class="sd-add-form"><div class="modal-title" style="font-size:1rem;margin-bottom:10px">Neuer Fahrer</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input type="text" id="sdFahrerName" class="modal-input" placeholder="Name ⚑">
+      <input type="text" id="sdFahrerTel" class="modal-input" placeholder="Telefon">
+      <input type="text" id="sdFahrerKlasse" class="modal-input" placeholder="Führerscheinklasse">
+      <select id="sdFahrerFzg" class="modal-input">
+        <option value="">-- Standardfahrzeug --</option>
+        ${db.stammdaten.fahrzeuge.map(f => `<option value="${f.id}">${escHtml(f.kz)}</option>`).join('')}
+      </select>
+    </div>
+    <button class="modal-btn-primary" style="margin-top:10px" onclick="addSdFahrer()">Speichern</button>
+  </div>`;
+
+  if (tab === 'fahrzeuge') return `<div class="sd-add-form"><div class="modal-title" style="font-size:1rem;margin-bottom:10px">Neues Fahrzeug</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input type="text" id="sdFzgKz" class="modal-input" placeholder="Kennzeichen ⚑">
+      <input type="text" id="sdFzgTyp" class="modal-input" placeholder="Typ (z.B. 12t Plane)">
+      <select id="sdFzgFahrer" class="modal-input">
+        <option value="">-- Standardfahrer --</option>
+        ${db.stammdaten.fahrer.map(f => `<option value="${f.id}">${escHtml(f.name)}</option>`).join('')}
+      </select>
+    </div>
+    <button class="modal-btn-primary" style="margin-top:10px" onclick="addSdFahrzeug()">Speichern</button>
+  </div>`;
+
+  if (tab === 'frachtfuehrer') return `<div class="sd-add-form"><div class="modal-title" style="font-size:1rem;margin-bottom:10px">Neuer Frachtführer</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input type="text" id="sdFrachtFirma" class="modal-input" placeholder="Firmenname ⚑">
+      <input type="text" id="sdFrachtKontakt" class="modal-input" placeholder="Kontakt / Ansprechpartner">
+    </div>
+    <button class="modal-btn-primary" style="margin-top:10px" onclick="addSdFracht()">Speichern</button>
+  </div>`;
+
+  if (tab === 'adressen') return `<div class="sd-add-form"><div class="modal-title" style="font-size:1rem;margin-bottom:10px">Neue Adresse</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input type="text" id="sdAdrName" class="modal-input" placeholder="Name / Firma ⚑" style="grid-column:1/-1">
+      <input type="text" id="sdAdrStr" class="modal-input" placeholder="Straße & Hausnr.">
+      <div style="display:flex;gap:8px">
+        <input type="text" id="sdAdrPlz" class="modal-input" placeholder="PLZ" style="width:80px">
+        <input type="text" id="sdAdrOrt" class="modal-input" placeholder="Ort" style="flex:1">
+      </div>
+    </div>
+    <button class="modal-btn-primary" style="margin-top:10px" onclick="addSdAdresse()">Speichern</button>
+  </div>`;
+  return '';
+}
+function renderSdTab() {
+  const c = document.getElementById(`sdContent${currentSdTab.charAt(0).toUpperCase() + currentSdTab.slice(1)}`);
+  if (!c) return;
+  const arr = db.stammdaten[currentSdTab] || [];
+
+  let listHtml = '';
+  if (arr.length === 0) listHtml = `<div style="text-align:center;color:var(--text-4);padding:20px">Noch keine Einträge</div>`;
+  else {
+    listHtml = arr.map(item => {
+      let title = '', desc = '';
+      if (currentSdTab === 'fahrer') {
+        title = item.name;
+        desc = [item.tel, item.klasse, db.stammdaten.fahrzeuge.find(f => f.id === item.fzgId)?.kz].filter(Boolean).join(' • ');
+      } else if (currentSdTab === 'fahrzeuge') {
+        title = item.kz;
+        desc = [item.typ, db.stammdaten.fahrer.find(f => f.id === item.fahrerId)?.name].filter(Boolean).join(' • ');
+      } else if (currentSdTab === 'frachtfuehrer') {
+        title = item.firma; desc = item.kontakt || '';
+      } else if (currentSdTab === 'adressen') {
+        title = item.name; desc = [item.str, item.plz, item.ort].filter(Boolean).join(', ');
+      }
+      return `<div class="sd-item">
+        <div class="sd-item-content">
+          <div class="sd-item-title">${escHtml(title)}</div>
+          <div class="sd-item-desc">${escHtml(desc)}</div>
+        </div>
+        <button class="modal-btn-ghost" type="button" onclick="deleteSdItem('${item.id}')" style="color:var(--danger)">Löschen</button>
+      </div>`;
+    }).join('');
+  }
+
+  c.innerHTML = getSdForm(currentSdTab) + listHtml;
+}
+
+function addSdFahrer() {
+  const name = document.getElementById('sdFahrerName').value.trim();
+  if (!name) { toast('Name erforderlich', 'error'); return; }
+  db.stammdaten.fahrer.push({
+    id: 'fhr_' + Date.now(), name,
+    tel: document.getElementById('sdFahrerTel').value.trim(),
+    klasse: document.getElementById('sdFahrerKlasse').value.trim(),
+    fzgId: document.getElementById('sdFahrerFzg').value
+  });
+  scheduleSave(); renderSdTab(); rebuildAutocomplete();
+}
+function addSdFahrzeug() {
+  const kz = document.getElementById('sdFzgKz').value.trim();
+  if (!kz) { toast('Kennzeichen erforderlich', 'error'); return; }
+  db.stammdaten.fahrzeuge.push({
+    id: 'fzg_' + Date.now(), kz,
+    typ: document.getElementById('sdFzgTyp').value.trim(),
+    fahrerId: document.getElementById('sdFzgFahrer').value
+  });
+  scheduleSave(); renderSdTab(); rebuildAutocomplete();
+}
+function addSdFracht() {
+  const firma = document.getElementById('sdFrachtFirma').value.trim();
+  if (!firma) { toast('Firma erforderlich', 'error'); return; }
+  db.stammdaten.frachtfuehrer.push({
+    id: 'frc_' + Date.now(), firma,
+    kontakt: document.getElementById('sdFrachtKontakt').value.trim()
+  });
+  scheduleSave(); renderSdTab(); rebuildAutocomplete();
+}
+function addSdAdresse() {
+  const name = document.getElementById('sdAdrName').value.trim();
+  if (!name) { toast('Name erforderlich', 'error'); return; }
+  db.stammdaten.adressen.push({
+    id: 'adr_' + Date.now(), name,
+    str: document.getElementById('sdAdrStr').value.trim(),
+    plz: document.getElementById('sdAdrPlz').value.trim(),
+    ort: document.getElementById('sdAdrOrt').value.trim()
+  });
+  scheduleSave(); renderSdTab(); rebuildAutocomplete();
+}
+function deleteSdItem(id) {
+  if (!confirm('Diesen Eintrag wirklich löschen?')) return;
+  const idx = db.stammdaten[currentSdTab].findIndex(i => i.id === id);
+  if (idx > -1) {
+    db.stammdaten[currentSdTab].splice(idx, 1);
+    scheduleSave(); renderSdTab(); rebuildAutocomplete();
+  }
+}
+
+// ─── Tour Auto-Fill Logic ────────────────────────────────────────────────────────
+document.getElementById('detailFahrzeug')?.addEventListener('change', (e) => {
+  const kz = e.target.value.trim();
+  const fahrerInp = document.getElementById('detailFahrer');
+  if (kz && db.stammdaten?.fahrzeuge && fahrerInp && !fahrerInp.value) {
+    const fzg = db.stammdaten.fahrzeuge.find(f => f.kz === kz);
+    if (fzg && fzg.fahrerId) {
+      const fahrer = db.stammdaten.fahrer.find(f => f.id === fzg.fahrerId);
+      if (fahrer) {
+        fahrerInp.value = fahrer.name;
+      }
+    }
+  }
+});
+document.getElementById('detailFahrer')?.addEventListener('change', (e) => {
+  const name = e.target.value.trim();
+  const fzgInp = document.getElementById('detailFahrzeug');
+  if (name && db.stammdaten?.fahrer && fzgInp && !fzgInp.value) {
+    const fahrer = db.stammdaten.fahrer.find(f => f.name === name);
+    if (fahrer && fahrer.fzgId) {
+      const fzg = db.stammdaten.fahrzeuge.find(f => f.id === fahrer.fzgId);
+      if (fzg) {
+        fzgInp.value = fzg.kz;
+      }
+    }
+  }
+});
 
 // ─── Keyboard ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
