@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Gemini Chat</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            overflow: hidden;
+        }
+        .settings {
+            padding: 15px;
+            background: #202124;
+            color: white;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .settings input, .settings select {
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            flex: 1;
+            min-width: 150px;
+        }
+        .chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+        .ai-message {
+            background-color: #f1f3f4;
+            color: #202124;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+        .input-area {
+            display: flex;
+            padding: 15px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+        }
+        .input-area button {
+            padding: 12px 20px;
+            margin-left: 10px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .input-area button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="settings">
+        <input type="password" id="apiKey" placeholder="Enter Gemini API Key" autocomplete="off">
+<select id="modelSelect">
+    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Most Powerful)</option>
+    <option value="gemini-3-flash-preview">Gemini 3 Flash (Fast & Smart)</option>
+    <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash-Lite (Budget/High Volume)</option>
+    
+    <option value="gemini-2.5-pro">Gemini 2.5 Pro (Stable)</option>
+    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Stable)</option>
+</select>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+        <div class="message ai-message">Hello! Enter your API key above and say hi!</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    // Store conversation history for multi-turn chat
+    let conversationHistory = [];
+
+    async function sendMessage() {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        const model = document.getElementById('modelSelect').value;
+        const userInputField = document.getElementById('userInput');
+        const userText = userInputField.value.trim();
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Validation
+        if (!apiKey) {
+            alert("Please enter your Gemini API Key first.");
+            return;
+        }
+        if (!userText) return;
+
+        // 1. Display User Message
+        appendMessage('user', userText);
+        userInputField.value = '';
+        sendBtn.disabled = true;
+        
+        // Add user message to history
+        conversationHistory.push({
+            role: "user",
+            parts: [{ text: userText }]
+        });
+
+        // 2. Add temporary loading message
+        const loadingId = appendMessage('ai', 'Thinking...');
+
+        try {
+            // 3. Call the Gemini API via REST
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: conversationHistory
+                })
+            });
+
+            const data = await response.json();
+
+            // Handle API errors (e.g., invalid key)
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            // Extract the text response
+            const aiResponseText = data.candidates[0].content.parts[0].text;
+
+            // Update history with AI response
+            conversationHistory.push({
+                role: "model",
+                parts: [{ text: aiResponseText }]
+            });
+
+            // 4. Update the UI with the real response
+            updateMessage(loadingId, aiResponseText);
+
+        } catch (error) {
+            console.error(error);
+            updateMessage(loadingId, `<span class="error-message">Error: ${error.message}</span>`);
+            // Remove the failed user message from history so it doesn't break future requests
+            conversationHistory.pop(); 
+        } finally {
+            sendBtn.disabled = false;
+            userInputField.focus();
+        }
+    }
+
+    // Helper to press "Enter" to send
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    // UI Helpers
+    function appendMessage(sender, text) {
+        const chatBox = document.getElementById('chatBox');
+        const msgDiv = document.createElement('div');
+        const uniqueId = 'msg-' + Date.now();
+        msgDiv.id = uniqueId;
+        msgDiv.className = `message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
+        msgDiv.innerHTML = formatText(text); // Basic formatting
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+        return uniqueId;
+    }
+
+    function updateMessage(id, newText) {
+        const msgDiv = document.getElementById(id);
+        if (msgDiv) {
+            msgDiv.innerHTML = formatText(newText);
+        }
+    }
+
+    // Basic formatter to handle newlines
+    function formatText(text) {
+        return text.replace(/\n/g, '<br>');
+    }
+</script>
+
+</body>
+</html>

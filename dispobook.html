@@ -212,7 +212,6 @@
 
     <!-- MAIN -->
     <main>
-      <!-- ADD TOUR BAR -->
       <div class="add-tour-bar">
         <div class="add-tour-bar-inner">
           <svg class="add-tour-bar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -222,13 +221,25 @@
           </svg>
           <input class="add-tour-bar-input" id="addTourName" type="text" placeholder="Neue Tour hinzufügen…"
             onkeydown="addTourKeyDown(event)" autocomplete="off">
-          <select class="add-tour-bar-select" id="addTourDaySelect"></select>
           <button class="add-tour-bar-btn" onclick="addTourFromBar()">Hinzufügen</button>
         </div>
       </div>
 
       <!-- STATS ROW -->
       <div class="stats-row" id="statsRow"></div>
+
+      <!-- STAGING TRAY -->
+      <div class="staging-tray" id="stagingTray">
+        <div class="staging-tray-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <path d="M5 12h14" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+          Neue Touren — auf einen Tag ziehen
+        </div>
+        <div class="staging-tray-row" id="stagingRow"></div>
+      </div>
 
       <!-- DAYS GRID -->
       <div class="days-grid" id="daysGrid"></div>
@@ -535,6 +546,154 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="dispobook.js"></script>
+
+  <!-- CONTEXT MENU -->
+  <div id="ctxMenu" role="menu" aria-label="Tour-Optionen">
+    <div class="ctx-header">
+      <div class="ctx-tour-name" id="ctxTourName">—</div>
+      <div class="ctx-tour-date" id="ctxTourDate"></div>
+    </div>
+    <button class="ctx-item" onclick="ctxRename()" role="menuitem">
+      <span class="ctx-item-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      </span>
+      <span class="ctx-item-text">
+        Umbenennen
+        <span class="ctx-item-sub">Namen der Tour ändern</span>
+      </span>
+    </button>
+    <button class="ctx-item" onclick="ctxEdit()" role="menuitem">
+      <span class="ctx-item-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="9" y1="9" x2="15" y2="9" />
+          <line x1="9" y1="13" x2="15" y2="13" />
+          <line x1="9" y1="17" x2="12" y2="17" />
+        </svg>
+      </span>
+      <span class="ctx-item-text">
+        Bearbeiten
+        <span class="ctx-item-sub">Alle Details der Tour öffnen</span>
+      </span>
+    </button>
+    <button class="ctx-item" onclick="ctxCopy()" role="menuitem">
+      <span class="ctx-item-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      </span>
+      <span class="ctx-item-text">
+        Kopieren
+        <span class="ctx-item-sub">Tour duplizieren</span>
+      </span>
+    </button>
+    <div class="ctx-sep"></div>
+    <button class="ctx-item" role="menuitem" style="position:relative">
+      <span class="ctx-item-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <polyline points="5 9 2 12 5 15" />
+          <polyline points="9 5 12 2 15 5" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <line x1="12" y1="2" x2="12" y2="22" />
+        </svg>
+      </span>
+      <span class="ctx-item-text">
+        Verschieben nach
+        <span class="ctx-item-sub">Anderen Tag wählen</span>
+      </span>
+      <span class="ctx-item-arrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </span>
+      <!-- Sub-menu populated by JS -->
+      <div class="ctx-submenu" id="ctxMoveSubmenu"></div>
+    </button>
+    <div class="ctx-sep"></div>
+    <button class="ctx-item danger" onclick="ctxDelete()" role="menuitem">
+      <span class="ctx-item-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6" />
+          <path d="M14 11v6" />
+        </svg>
+      </span>
+      <span class="ctx-item-text">
+        Löschen
+        <span class="ctx-item-sub">Tour dauerhaft entfernen</span>
+      </span>
+    </button>
+  </div>
+
+  <!-- ADD PROMPT MODAL -->
+  <div class="modal-backdrop" id="addPromptModal-backdrop" onclick="closeModal('addPromptModal')"></div>
+  <div class="modal" id="addPromptModal">
+    <div class="modal-content" style="max-width:400px">
+      <button class="modal-close" onclick="closeModal('addPromptModal')" aria-label="Schließen"><svg width="14"
+          height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg></button>
+      <div class="modal-title" style="margin-bottom:6px">Tour hinzugefügt</div>
+      <div class="modal-sub" style="margin-bottom:20px">
+        <strong id="addPromptTourName" style="color:var(--text-1)"></strong> wurde zur Warteliste hinzugefügt. Jetzt in
+        die Karte ziehen oder mehr Details eingeben?
+      </div>
+      <div class="add-prompt-btns">
+        <button class="add-prompt-btn" onclick="closeModal('addPromptModal')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span class="add-prompt-btn-label">Einfach</span>
+          <span class="add-prompt-btn-sub">Tour bleibt einfach — per Drag &amp; Drop positionieren</span>
+        </button>
+        <button class="add-prompt-btn primary-btn" onclick="addPromptGoDetail()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="9" y1="9" x2="15" y2="9" />
+            <line x1="9" y1="13" x2="15" y2="13" />
+            <line x1="9" y1="17" x2="12" y2="17" />
+          </svg>
+          <span class="add-prompt-btn-label">Vollständig</span>
+          <span class="add-prompt-btn-sub">Fahrer, Fahrzeug, Termin &amp; mehr jetzt eingeben</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RENAME MODAL -->
+  <div class="modal-backdrop" id="renameModal-backdrop" onclick="closeModal('renameModal')"></div>
+  <div class="modal" id="renameModal">
+    <div class="modal-content" style="max-width:380px">
+      <button class="modal-close" onclick="closeModal('renameModal')" aria-label="Schließen"><svg width="14" height="14"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg></button>
+      <div class="modal-title">Tour umbenennen</div>
+      <label class="modal-label" for="renameInput">Neuer Name<span class="required-star"
+          aria-hidden="true">*</span></label>
+      <input class="modal-input" type="text" id="renameInput" placeholder="Zielort / Bezeichnung…"
+        onkeydown="if(event.key==='Enter')confirmRename()">
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="modal-btn-primary" onclick="confirmRename()">Umbenennen</button>
+        <button class="modal-btn-ghost" onclick="closeModal('renameModal')">Abbrechen</button>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

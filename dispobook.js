@@ -165,7 +165,7 @@ function initApp() {
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
-function render() { renderNLSwitcher(); renderWeekLabel(); renderStats(); renderGrid(); updateFilterBadge(); }
+function render() { renderNLSwitcher(); renderWeekLabel(); renderStats(); renderGrid(); renderStagingTray(); updateFilterBadge(); }
 
 // ─── NL Switcher ─────────────────────────────────────────────────────────────
 function renderNLSwitcher() {
@@ -428,6 +428,13 @@ function setupCardEvents() {
     btn.addEventListener('click', e => { e.stopPropagation(); openConfirmDelete(btn.dataset.id); }));
   document.querySelectorAll('.tour-btn.detail').forEach(btn =>
     btn.addEventListener('click', e => { e.stopPropagation(); openTourDetail(btn.dataset.id); }));
+  // Right-click context menu
+  document.querySelectorAll('.tour-card').forEach(card =>
+    card.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openCtxMenu(card.dataset.id, e.clientX, e.clientY);
+    }));
   document.querySelectorAll('.tour-card').forEach(card =>
     card.addEventListener('dblclick', e => {
       if (!e.target.closest('.tour-btns') && !e.target.closest('.tour-drag-handle'))
@@ -484,23 +491,121 @@ function deleteTour(id) {
   toast('Tour gelöscht');
 }
 
-// ─── Add Tour Bar ─────────────────────────────────────────────────────────────
-function addTourFromBar() {
-  const nameInput = document.getElementById('addTourName');
-  const daySelect = document.getElementById('addTourDaySelect');
-  const name = nameInput.value.trim();
-  if (!name) { nameInput.classList.add('shake'); setTimeout(() => nameInput.classList.remove('shake'), 400); return; }
-  const dateKey = daySelect.value;
+// ─── Staging Tray ─────────────────────────────────────────────────────────────
+let stagingTours = []; // [{id, name}]
+let _addPromptLastId = null;
+
+function renderStagingTray() {
+  const tray = document.getElementById('stagingTray');
+  const row = document.getElementById('stagingRow');
+  if (!tray || !row) return;
+  if (stagingTours.length === 0) { tray.classList.remove('visible'); return; }
+  tray.classList.add('visible');
+  row.innerHTML = stagingTours.map(t => `
+    <div class="staging-card" draggable="true" data-staging-id="${t.id}">
+      <span class="staging-card-name">${escHtml(t.name)}</span>
+      <span class="staging-card-drag-hint">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+        Ziehen
+      </span>
+      <button class="staging-card-remove" onclick="removeStagingTour('${t.id}')" title="Entfernen" aria-label="Aus Warteliste entfernen">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`).join('');
+  // Setup drag from staging
+  row.querySelectorAll('.staging-card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      dragId = null;
+      e.dataTransfer.setData('staging-id', card.dataset.stagingId);
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => card.classList.add('dragging'), 0);
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('over', 'staging-over'));
+      document.querySelectorAll('.day-col').forEach(c => c.classList.remove('drag-target'));
+    });
+  });
+  // Staging drop onto zones
+  document.querySelectorAll('.drop-zone:not(.section-hidden)').forEach(zone => {
+    zone.addEventListener('dragover', e => {
+      if (!e.dataTransfer.types.includes('staging-id')) return;
+      e.preventDefault();
+      zone.classList.add('staging-over');
+      zone.closest('.day-col')?.classList.add('drag-target');
+    });
+    zone.addEventListener('dragleave', e => {
+      if (!zone.contains(e.relatedTarget)) {
+        zone.classList.remove('staging-over');
+        zone.closest('.day-col')?.classList.remove('drag-target');
+      }
+    });
+    zone.addEventListener('drop', e => {
+      const sid = e.dataTransfer.getData('staging-id');
+      if (!sid) return;
+      e.preventDefault();
+      zone.classList.remove('staging-over');
+      zone.closest('.day-col')?.classList.remove('drag-target');
+      dropStagingTour(sid, zone.dataset.date, zone.dataset.status);
+    });
+  });
+}
+
+function dropStagingTour(sid, dateKey, status) {
+  const idx = stagingTours.findIndex(t => t.id === sid);
+  if (idx === -1) return;
+  const { id, name } = stagingTours[idx];
+  stagingTours.splice(idx, 1);
   if (!db.tours[currentNL]) db.tours[currentNL] = {};
   if (!db.tours[currentNL][dateKey]) db.tours[currentNL][dateKey] = { pending: [], done: [] };
-  db.tours[currentNL][dateKey].pending.push({ id: uid(), name, created: Date.now(), updated: Date.now() });
-  nameInput.value = ''; nameInput.focus();
+  const tour = { id, name, created: Date.now(), updated: Date.now() };
+  db.tours[currentNL][dateKey][status || 'pending'].push(tour);
   scheduleSave(); render();
   const col = document.querySelector(`.day-col[data-date="${dateKey}"]`);
   if (col) { col.classList.add('remote-flash'); setTimeout(() => col.classList.remove('remote-flash'), 1400); }
-  toast(`Tour „${name}" hinzugefügt`, 'success');
+  toast(`Tour „${name}" platziert`, 'success');
+}
+
+function removeStagingTour(id) {
+  stagingTours = stagingTours.filter(t => t.id !== id);
+  renderStagingTray();
+}
+
+// ─── Add Tour Bar ─────────────────────────────────────────────────────────────
+function addTourFromBar() {
+  const nameInput = document.getElementById('addTourName');
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.classList.add('shake'); setTimeout(() => nameInput.classList.remove('shake'), 400); return; }
+  const id = uid();
+  stagingTours.push({ id, name });
+  _addPromptLastId = id;
+  nameInput.value = '';
+  nameInput.focus();
+  renderStagingTray();
+  // Show prompt
+  const promptName = document.getElementById('addPromptTourName');
+  if (promptName) promptName.textContent = `„${name}"`;
+  openModal('addPromptModal');
 }
 function addTourKeyDown(e) { if (e.key === 'Enter') addTourFromBar(); }
+function addPromptGoDetail() {
+  closeModal('addPromptModal');
+  if (!_addPromptLastId) return;
+  // The tour is still in staging. Open detail modal in "staging" mode so user can fill details,
+  // then on save it gets placed — for simplicity we open the detail modal with a temp day = today.
+  const t = stagingTours.find(s => s.id === _addPromptLastId);
+  if (!t) return;
+  // Place it on today first, then open detail
+  const today = fmt(new Date());
+  if (!db.tours[currentNL]) db.tours[currentNL] = {};
+  if (!db.tours[currentNL][today]) db.tours[currentNL][today] = { pending: [], done: [] };
+  const tour = { id: t.id, name: t.name, created: Date.now(), updated: Date.now() };
+  db.tours[currentNL][today].pending.push(tour);
+  stagingTours = stagingTours.filter(s => s.id !== t.id);
+  scheduleSave(); render();
+  openTourDetail(t.id);
+  _addPromptLastId = null;
+}
 
 // ─── Tour Detail Modal ────────────────────────────────────────────────────────
 function openTourDetail(id) {
@@ -768,17 +873,115 @@ function toast(msg, type = '') {
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 250); }, 2800);
 }
 
+// ─── Context Menu ────────────────────────────────────────────────────────────
+let _ctxTourId = null;
+
+function openCtxMenu(id, x, y) {
+  const found = findTour(id);
+  if (!found) return;
+  _ctxTourId = id;
+  const { tour, dateKey } = found;
+  // Header
+  document.getElementById('ctxTourName').textContent = tour.name;
+  document.getElementById('ctxTourDate').textContent = fmtShort(dateKey) + ' ' + (DAY_NAMES[(parseDate(dateKey).getDay() + 6) % 7] || '');
+  // Build move-to submenu
+  const sub = document.getElementById('ctxMoveSubmenu');
+  const today = fmt(new Date());
+  let subHtml = '';
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(currentWeekStart, i);
+    const key = fmt(d);
+    if (key === dateKey) continue;
+    const label = DAY_NAMES[i] + ' ' + fmtShort(key);
+    subHtml += `<button class="ctx-item" onclick="ctxMoveTo('${key}')">
+      <span class="ctx-item-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </span>
+      <span class="ctx-item-text">${escHtml(label)}</span>
+    </button>`;
+  }
+  if (sub) sub.innerHTML = subHtml || '<div style="padding:8px 12px;font-size:.78rem;color:var(--text-4)">Nur diese Woche</div>';
+  // Position
+  const menu = document.getElementById('ctxMenu');
+  menu.classList.add('open');
+  // Clamp to viewport
+  const mw = menu.offsetWidth || 220;
+  const mh = menu.offsetHeight || 260;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  menu.style.left = Math.min(x, vw - mw - 8) + 'px';
+  menu.style.top = Math.min(y, vh - mh - 8) + 'px';
+}
+function closeCtxMenu() {
+  document.getElementById('ctxMenu')?.classList.remove('open');
+  _ctxTourId = null;
+}
+function ctxRename() {
+  closeCtxMenu();
+  if (!_ctxTourId) return;
+  const found = findTour(_ctxTourId);
+  if (!found) return;
+  _renamingTourId = _ctxTourId;
+  const inp = document.getElementById('renameInput');
+  if (inp) { inp.value = found.tour.name; }
+  openModal('renameModal');
+  setTimeout(() => document.getElementById('renameInput')?.select(), 80);
+}
+function ctxEdit() { const id = _ctxTourId; closeCtxMenu(); openTourDetail(id); }
+function ctxDelete() { const id = _ctxTourId; closeCtxMenu(); openConfirmDelete(id); }
+function ctxCopy() {
+  closeCtxMenu();
+  if (!_ctxTourId) return;
+  const found = findTour(_ctxTourId);
+  if (!found) return;
+  const { tour, dateKey } = found;
+  const copy = { ...tour, id: uid(), name: tour.name + ' (Kopie)', created: Date.now(), updated: Date.now() };
+  db.tours[currentNL][dateKey].pending.push(copy);
+  scheduleSave(); render();
+  toast(`„${copy.name}" kopiert`, 'success');
+}
+function ctxMoveTo(targetDate) {
+  closeCtxMenu();
+  if (!_ctxTourId) return;
+  moveTour(_ctxTourId, targetDate, 'pending');
+  toast('Tour verschoben', 'success');
+}
+
+// ─── Rename Modal ─────────────────────────────────────────────────────────────
+let _renamingTourId = null;
+function confirmRename() {
+  const inp = document.getElementById('renameInput');
+  const name = inp?.value.trim();
+  if (!name) { inp?.classList.add('shake'); setTimeout(() => inp?.classList.remove('shake'), 400); return; }
+  if (!_renamingTourId) return;
+  const found = findTour(_renamingTourId);
+  if (!found) { closeModal('renameModal'); return; }
+  found.tour.name = name;
+  found.tour.updated = Date.now();
+  _renamingTourId = null;
+  closeModal('renameModal');
+  scheduleSave(); render();
+  toast('Tour umbenannt', 'success');
+}
+
 // ─── Keyboard ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    ['tourDetailModal', 'fileMenu', 'nlModal', 'importModal', 'confirmDeleteModal'].forEach(closeModal);
+    ['tourDetailModal', 'fileMenu', 'nlModal', 'importModal', 'confirmDeleteModal', 'addPromptModal', 'renameModal'].forEach(closeModal);
+    closeCtxMenu();
     if (filterPanelOpen) toggleFilterPanel();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); document.getElementById('searchInput')?.focus(); }
 });
 document.addEventListener('click', e => {
-  if (!filterPanelOpen) return;
+  if (!filterPanelOpen) {
+    const menu = document.getElementById('ctxMenu');
+    if (menu?.classList.contains('open') && !menu.contains(e.target)) closeCtxMenu();
+    return;
+  }
   const panel = document.getElementById('filterPanel');
   const btn = document.getElementById('filterBtn');
   if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) toggleFilterPanel();
+  const menu = document.getElementById('ctxMenu');
+  if (menu?.classList.contains('open') && !menu.contains(e.target)) closeCtxMenu();
 });
