@@ -1,5 +1,5 @@
 {
-  "version": 1773004075505,
+  "version": 1773094487180,
   "niederlassungen": [
     "Wetzlar"
   ],
@@ -18,7 +18,7 @@
             "gewicht": 2450,
             "ladebereit_ab": "2026-03-02T07:00",
             "verladen_am": null,
-            "frachtpreis": 385.00,
+            "frachtpreis": 385,
             "besonderheiten": "Kühlware – Temperatur max. +6 °C"
           }
         ],
@@ -37,7 +37,7 @@
             "gewicht": 1800,
             "ladebereit_ab": "2026-03-03T06:30",
             "verladen_am": null,
-            "frachtpreis": 310.50,
+            "frachtpreis": 310.5,
             "besonderheiten": "Lieferung vor 12:00 Uhr – Rampe B"
           }
         ],
@@ -62,7 +62,7 @@
             "gewicht": 950,
             "ladebereit_ab": "2026-03-02T08:00",
             "verladen_am": null,
-            "frachtpreis": 145.00,
+            "frachtpreis": 145,
             "besonderheiten": "Testlieferung – kein Sonderversand"
           }
         ],
@@ -81,7 +81,7 @@
             "gewicht": 3200,
             "ladebereit_ab": "2026-03-03T07:30",
             "verladen_am": null,
-            "frachtpreis": 520.00,
+            "frachtpreis": 520,
             "besonderheiten": "Schwergut – Stapler erforderlich, 2 Paletten EUR"
           }
         ],
@@ -100,23 +100,76 @@
             "gewicht": 670,
             "ladebereit_ab": "2026-03-04T09:00",
             "verladen_am": null,
-            "frachtpreis": 98.50,
+            "frachtpreis": 98.5,
             "besonderheiten": "Expresslieferung – Unterschrift des Empfängers erforderlich"
           }
         ],
         "done": []
       },
-      "2026-03-05": { "pending": [], "done": [] },
-      "2026-03-06": { "pending": [], "done": [] },
-      "2026-03-07": { "pending": [], "done": [] },
-      "2026-03-08": { "pending": [], "done": [] },
-      "2026-03-09": { "pending": [], "done": [] },
-      "2026-03-10": { "pending": [], "done": [] },
-      "2026-03-11": { "pending": [], "done": [] },
-      "2026-03-12": { "pending": [], "done": [] },
-      "2026-03-13": { "pending": [], "done": [] },
-      "2026-03-14": { "pending": [], "done": [] },
-      "2026-03-15": { "pending": [], "done": [] }
+      "2026-03-05": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-06": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-07": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-08": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-09": {
+        "pending": [],
+        "done": [
+          {
+            "id": "1773094440584_1virm",
+            "name": "Test",
+            "created": 1773094440584,
+            "updated": 1773094486574,
+            "verladen_am": "2026-03-09T22:14",
+            "absender": null,
+            "empfaenger": null,
+            "fahrer": null,
+            "fahrzeug": null,
+            "frachtfuehrer": null,
+            "kommissionierliste": null,
+            "gewicht": null,
+            "frachtpreis": 5000,
+            "liefertermin": null,
+            "ladebereit_ab": null,
+            "besonderheiten": null,
+            "farbe": null
+          }
+        ]
+      },
+      "2026-03-10": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-11": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-12": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-13": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-14": {
+        "pending": [],
+        "done": []
+      },
+      "2026-03-15": {
+        "pending": [],
+        "done": []
+      }
     }
   },
   "deletedTours": {
