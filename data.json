@@ -11,7 +11,15 @@
             "id": "1773001551521_h8gv5",
             "name": "Hamburg",
             "created": 1773001551521,
-            "updated": 1773001551521
+            "updated": 1773001551521,
+            "absender": "Strieder Logistik GmbH",
+            "empfaenger": "Müller & Partner KG, Hamburg",
+            "kommissionierliste": "KL-2026-0312",
+            "gewicht": 2450,
+            "ladebereit_ab": "2026-03-02T07:00",
+            "verladen_am": null,
+            "frachtpreis": 385.00,
+            "besonderheiten": "Kühlware – Temperatur max. +6 °C"
           }
         ],
         "done": []
@@ -22,20 +30,40 @@
             "id": "1773001560801_z99j9",
             "name": "Berlin",
             "created": 1773001560801,
-            "updated": 1773001560801
+            "updated": 1773001560801,
+            "absender": "Strieder Logistik GmbH",
+            "empfaenger": "Berliner Handel AG",
+            "kommissionierliste": "KL-2026-0317",
+            "gewicht": 1800,
+            "ladebereit_ab": "2026-03-03T06:30",
+            "verladen_am": null,
+            "frachtpreis": 310.50,
+            "besonderheiten": "Lieferung vor 12:00 Uhr – Rampe B"
           }
         ],
         "done": []
       }
     },
     "Wetzlar": {
+      "2026-03-01": {
+        "pending": [],
+        "done": []
+      },
       "2026-03-02": {
         "pending": [
           {
             "id": "1773002242280_xabqg",
             "name": "Test",
             "created": 1773002242280,
-            "updated": 1773003004843
+            "updated": 1773003004843,
+            "absender": "Strieder Wetzlar GmbH",
+            "empfaenger": "Testempfänger GmbH, Frankfurt",
+            "kommissionierliste": "KL-2026-0301",
+            "gewicht": 950,
+            "ladebereit_ab": "2026-03-02T08:00",
+            "verladen_am": null,
+            "frachtpreis": 145.00,
+            "besonderheiten": "Testlieferung – kein Sonderversand"
           }
         ],
         "done": []
@@ -46,13 +74,17 @@
             "id": "1773002343669_bveoz",
             "name": "GI",
             "created": 1773002343669,
-            "updated": 1773002993978
+            "updated": 1773002993978,
+            "absender": "Gießen Industrie AG",
+            "empfaenger": "Rhein-Main Distributors GmbH",
+            "kommissionierliste": "KL-2026-0308",
+            "gewicht": 3200,
+            "ladebereit_ab": "2026-03-03T07:30",
+            "verladen_am": null,
+            "frachtpreis": 520.00,
+            "besonderheiten": "Schwergut – Stapler erforderlich, 2 Paletten EUR"
           }
         ],
-        "done": []
-      },
-      "2026-03-01": {
-        "pending": [],
         "done": []
       },
       "2026-03-04": {
@@ -61,55 +93,30 @@
             "id": "1773002391691_op5ta",
             "name": "XYZ",
             "created": 1773002391691,
-            "updated": 1773004074290
+            "updated": 1773004074290,
+            "absender": "XYZ Versand GmbH",
+            "empfaenger": "Express-Lager Süd, Stuttgart",
+            "kommissionierliste": "KL-2026-0322",
+            "gewicht": 670,
+            "ladebereit_ab": "2026-03-04T09:00",
+            "verladen_am": null,
+            "frachtpreis": 98.50,
+            "besonderheiten": "Expresslieferung – Unterschrift des Empfängers erforderlich"
           }
         ],
         "done": []
       },
-      "2026-03-05": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-06": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-07": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-08": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-09": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-10": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-11": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-12": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-13": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-14": {
-        "pending": [],
-        "done": []
-      },
-      "2026-03-15": {
-        "pending": [],
-        "done": []
-      }
+      "2026-03-05": { "pending": [], "done": [] },
+      "2026-03-06": { "pending": [], "done": [] },
+      "2026-03-07": { "pending": [], "done": [] },
+      "2026-03-08": { "pending": [], "done": [] },
+      "2026-03-09": { "pending": [], "done": [] },
+      "2026-03-10": { "pending": [], "done": [] },
+      "2026-03-11": { "pending": [], "done": [] },
+      "2026-03-12": { "pending": [], "done": [] },
+      "2026-03-13": { "pending": [], "done": [] },
+      "2026-03-14": { "pending": [], "done": [] },
+      "2026-03-15": { "pending": [], "done": [] }
     }
   },
   "deletedTours": {

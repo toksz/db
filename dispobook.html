@@ -7,67 +7,46 @@
   <title>Strieder DispoBook</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dispobook.css">
 </head>
 
 <body>
 
   <!-- ══════════════════════════════════════
-     FILE SETUP SCREEN
-══════════════════════════════════════ -->
+       FILE SETUP SCREEN
+  ══════════════════════════════════════ -->
   <div class="file-setup" id="fileSetup">
     <div class="file-setup-box">
       <img class="file-setup-logo" src="strieder-logo.png" alt="Strieder Logo">
       <div class="file-setup-title">DispoBook</div>
-      <div class="file-setup-sub">Verwalten Sie Ihre Dispositionen effizient und übersichtlich. Wählen Sie eine Datei,
-        um zu beginnen.</div>
+      <div class="file-setup-sub">Verwalten Sie Ihre Dispositionen effizient und übersichtlich.<br>Wählen Sie eine Datei, um zu beginnen.</div>
       <div class="file-setup-actions">
         <button class="file-setup-btn primary" onclick="pickFile()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Datei öffnen
         </button>
         <button class="file-setup-btn secondary" onclick="createNewFile()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="12" y1="18" x2="12" y2="12" />
-            <line x1="9" y1="15" x2="15" y2="15" />
-          </svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
           Neue Datei erstellen
         </button>
       </div>
       <div class="file-setup-note">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-        Sie können auch eine existierende <code>data.json</code> Datei hochladen oder bearbeiten.
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Nur in Chromium-basierten Browsern (Chrome, Edge) verfügbar. Öffnen Sie eine bestehende <code>data.json</code> oder erstellen Sie eine neue Datei.
       </div>
     </div>
   </div>
 
   <!-- ══════════════════════════════════════
-     APP LAYOUT
-══════════════════════════════════════ -->
+       APP
+  ══════════════════════════════════════ -->
   <div id="app" style="display:none;">
+
     <!-- CONFLICT BANNER -->
     <div class="conflict-banner" id="conflictBanner">
       <span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Die Datei wurde extern geändert. <strong>Neuladen wird empfohlen.</strong>
       </span>
       <button class="conflict-reload" onclick="location.reload()">Neu laden</button>
@@ -76,52 +55,66 @@
     <!-- HEADER -->
     <header class="app-header">
       <div class="header-main">
+
+        <!-- Brand -->
         <div class="header-brand">
           <img class="logo-img" src="strieder-logo.png" alt="Strieder">
           <div class="brand-sep"></div>
           <div class="app-label">Dispo<span>Book</span></div>
         </div>
 
+        <!-- Niederlassung Switcher -->
+        <div class="nl-switcher" id="nlSwitcher">
+          <button class="nl-switch-btn" id="nlSwitcherPrev" onclick="switchNL(-1)" title="Vorherige Niederlassung">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="nl-switch-center">
+            <span class="nl-switch-label">Niederlassung</span>
+            <span class="nl-switch-name" id="nlSwitcherName">—</span>
+          </div>
+          <span class="nl-switch-count" id="nlSwitcherCount" style="display:none">0</span>
+          <button class="nl-switch-btn" id="nlSwitcherNext" onclick="switchNL(1)" title="Nächste Niederlassung">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        <!-- Week Nav -->
         <div class="header-center">
           <div class="week-nav">
             <button class="week-btn" onclick="changeWeek(-1)" title="Vorherige Woche">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <div class="week-label" id="weekLabel"></div>
             <button class="week-btn" onclick="changeWeek(1)" title="Nächste Woche">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
           <button class="btn-today" onclick="goToday()">Heute</button>
         </div>
 
+        <!-- Actions -->
         <div class="header-actions">
           <div class="sync-status">
             <div class="sync-dot" id="syncDot"></div>
             <span id="syncLabel">synchron</span>
             <span class="sync-update-badge" id="syncBadge">Aktualisiert</span>
           </div>
+          <!-- Search -->
+          <div class="search-wrap">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="search-input" id="searchInput" type="text" placeholder="Suchen…" oninput="onSearchInput(event)">
+            <button class="search-clear" onclick="clearSearch()" title="Suche leeren">✕</button>
+          </div>
           <button class="btn-export" onclick="handleExport()" title="Als Excel exportieren">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Exportieren
           </button>
-          <button class="btn-export btn-export-primary" onclick="openFileMenu()" title="Einstellungen">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path
-                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 0 1 17 19.79a2 2 0 0 1-2.83 0l-.06-.06A1.65 1.65 0 0 0 12.29 19a1.65 1.65 0 0 0-1.65 1.33V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 5.64 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 0 1 .93 17a2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 1.32 12a1.65 1.65 0 0 0-1.33-1.64H0a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 1.6 5.64a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 0 1 3.97.93a2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 8.68 1.32 1.65 1.65 0 0 0 10.32 0H10.5a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 9.07 5.64l.06.06a1.65 1.65 0 0 0 1.82.33H11a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06A2 2 0 0 1 23 6.07a2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 22.61 10.68a1.65 1.65 0 0 0 1.51 1H24a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 0 1 20.93 21a2 2 0 0 1-2.83 0l-.06-.06A1.65 1.65 0 0 0 16.32 20.61z" />
+          <!-- Settings: simple 3-line icon -->
+          <button class="btn-export btn-settings" onclick="openFileMenu()" title="Einstellungen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
         </div>
@@ -130,10 +123,25 @@
 
     <!-- MAIN CONTENT -->
     <main>
-      <!-- NIEDERLASSUNGEN TABS -->
-      <div class="nl-tabs" id="nlTabs"></div>
 
-      <!-- STATS ROW — populated dynamically by renderStats() in dispobook.js -->
+      <!-- GLOBAL ADD TOUR BAR -->
+      <div class="add-tour-bar">
+        <div class="add-tour-bar-inner">
+          <svg class="add-tour-bar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <input
+            class="add-tour-bar-input"
+            id="addTourName"
+            type="text"
+            placeholder="Neue Tour hinzufügen…"
+            onkeydown="addTourKeyDown(event)"
+            autocomplete="off"
+          >
+          <select class="add-tour-bar-select" id="addTourDaySelect"></select>
+          <button class="add-tour-bar-btn" onclick="addTourFromBar()">Hinzufügen</button>
+        </div>
+      </div>
+
+      <!-- STATS ROW -->
       <div class="stats-row" id="statsRow"></div>
 
       <!-- DAYS GRID -->
@@ -143,150 +151,131 @@
       <div class="nl-empty" id="emptyState" style="display:none;">
         <div class="nl-empty-icon">📭</div>
         <div class="nl-empty-title">Keine Dispositionen</div>
-        <div class="nl-empty-sub">Fügen Sie eine neue Disposition hinzu, um zu beginnen</div>
+        <div class="nl-empty-sub">Fügen Sie oben eine neue Tour hinzu</div>
       </div>
     </main>
   </div>
 
-  <!-- FILE MENU MODAL -->
-  <div class="modal-backdrop" id="fileMenuBackdrop" onclick="closeModal('fileMenu')"></div>
+  <!-- ══════════════════════════════════════
+       MODALS
+  ══════════════════════════════════════ -->
+
+  <!-- FILE MENU -->
+  <div class="modal-backdrop" id="fileMenu-backdrop" onclick="closeModal('fileMenu')"></div>
   <div class="modal" id="fileMenu">
     <div class="modal-content">
       <button class="modal-close" onclick="closeModal('fileMenu')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
-      <div class="modal-title">Datei & Einstellungen</div>
+      <div class="modal-title">Einstellungen</div>
       <div class="modal-menu">
         <button class="modal-menu-item" onclick="pickFile(); closeModal('fileMenu');">
-          <span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
-          </span>
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
           Andere Datei öffnen
         </button>
         <button class="modal-menu-item" onclick="handleExport(); closeModal('fileMenu');">
-          <span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </span>
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
           Exportieren als Excel
         </button>
         <button class="modal-menu-item" onclick="toggleDarkMode(); closeModal('fileMenu');">
-          <span id="themeSwitchIcon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          </span>
+          <span id="themeSwitchIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
           <span id="themeSwitchText">Dunkler Modus</span>
         </button>
         <button class="modal-menu-item" onclick="openModal('nlModal'); closeModal('fileMenu');">
-          <span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </span>
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
           Niederlassung hinzufügen
         </button>
         <button class="modal-menu-item" onclick="openImportModal(); closeModal('fileMenu');">
-          <span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-          </span>
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
           Daten importieren
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ADD DISPOSITION MODAL -->
-  <div class="modal-backdrop" id="addDispModal-backdrop" onclick="closeModal('addDispModal')"></div>
-  <div class="modal" id="addDispModal">
-    <div class="modal-content">
-      <button class="modal-close" onclick="closeModal('addDispModal')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+  <!-- TOUR DETAIL MODAL -->
+  <div class="modal-backdrop" id="tourDetailModal-backdrop" onclick="closeModal('tourDetailModal')"></div>
+  <div class="modal modal-wide" id="tourDetailModal">
+    <div class="modal-content modal-content-detail">
+      <button class="modal-close" onclick="closeModal('tourDetailModal')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
-      <div class="modal-title">Neue Disposition</div>
-      <label class="modal-label">Name</label>
-      <input class="modal-input" type="text" id="dispNameInput" placeholder="z.B. Kundenbesuch, Schulung…"
-        onkeydown="if(event.key==='Enter')confirmAddDisp()">
-      <div class="modal-actions">
-        <button class="modal-btn-primary" onclick="confirmAddDisp()">Hinzufügen</button>
-        <button class="modal-btn-ghost" onclick="closeModal('addDispModal')">Abbrechen</button>
-      </div>
-    </div>
-  </div>
+      <div class="modal-title">Tour bearbeiten</div>
 
-  <!-- EDIT DISPOSITION MODAL -->
-  <div class="modal-backdrop" id="editDispModal-backdrop" onclick="closeModal('editDispModal')"></div>
-  <div class="modal" id="editDispModal">
-    <div class="modal-content">
-      <button class="modal-close" onclick="closeModal('editDispModal')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-      <div class="modal-title">Disposition bearbeiten</div>
-      <label class="modal-label">Name</label>
-      <input class="modal-input" type="text" id="editDispNameInput" placeholder="Name…"
-        onkeydown="if(event.key==='Enter')confirmEditDisp()">
+      <!-- Name -->
+      <div class="detail-field-group">
+        <label class="modal-label">Zielort / Name</label>
+        <input class="modal-input" type="text" id="detailName" placeholder="z.B. Hamburg, Berlin…">
+      </div>
+
+      <!-- Absender & Empfänger -->
+      <div class="detail-row-2">
+        <div class="detail-field-group">
+          <label class="modal-label">Absender</label>
+          <input class="modal-input" type="text" id="detailAbsender" placeholder="Firma, Ort…">
+        </div>
+        <div class="detail-field-group">
+          <label class="modal-label">Empfänger</label>
+          <input class="modal-input" type="text" id="detailEmpfaenger" placeholder="Firma, Ort…">
+        </div>
+      </div>
+
+      <!-- KL & Gewicht & Preis -->
+      <div class="detail-row-3">
+        <div class="detail-field-group">
+          <label class="modal-label">Kommissionierliste</label>
+          <input class="modal-input" type="text" id="detailKommissionierliste" placeholder="KL-2026-…">
+        </div>
+        <div class="detail-field-group">
+          <label class="modal-label">Gewicht (kg)</label>
+          <input class="modal-input" type="number" id="detailGewicht" placeholder="0" min="0" step="0.1">
+        </div>
+        <div class="detail-field-group">
+          <label class="modal-label">Frachtpreis (€)</label>
+          <input class="modal-input" type="number" id="detailFrachtpreis" placeholder="0.00" min="0" step="0.01">
+        </div>
+      </div>
+
+      <!-- Ladebereit & Verladen -->
+      <div class="detail-row-2">
+        <div class="detail-field-group">
+          <label class="modal-label">Ladebereit ab</label>
+          <input class="modal-input" type="datetime-local" id="detailLadebereit">
+        </div>
+        <div class="detail-field-group">
+          <label class="modal-label">Verladen am</label>
+          <input class="modal-input" type="datetime-local" id="detailVerladen">
+        </div>
+      </div>
+
+      <!-- Besonderheiten -->
+      <div class="detail-field-group">
+        <label class="modal-label">Besonderheiten</label>
+        <textarea class="modal-input modal-textarea" id="detailBesonderheiten" placeholder="Hinweise, Sonderanforderungen…" rows="3"></textarea>
+      </div>
+
       <div class="modal-actions">
-        <button class="modal-btn-danger" onclick="confirmDeleteDisp()" style="margin-right: auto;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6" />
-            <path d="M14 11v6" />
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-          </svg>
+        <button class="modal-btn-danger" onclick="deleteTourFromDetail()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           Löschen
         </button>
-        <button class="modal-btn-primary" onclick="confirmEditDisp()">Speichern</button>
-        <button class="modal-btn-ghost" onclick="closeModal('editDispModal')">Abbrechen</button>
+        <button class="modal-btn-ghost" onclick="closeModal('tourDetailModal')">Abbrechen</button>
+        <button class="modal-btn-primary" onclick="saveTourDetail()">Speichern</button>
       </div>
     </div>
   </div>
 
-  <!-- ADD NIEDERLASSUNG MODAL -->
+  <!-- ADD NIEDERLASSUNG -->
   <div class="modal-backdrop" id="nlModal-backdrop" onclick="closeModal('nlModal')"></div>
   <div class="modal" id="nlModal">
     <div class="modal-content">
       <button class="modal-close" onclick="closeModal('nlModal')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
       <div class="modal-title">Niederlassung hinzufügen</div>
-      <div class="modal-sub">Geben Sie den Namen der neuen Niederlassung ein. Sie erscheint sofort als eigener Reiter.
-      </div>
+      <div class="modal-sub">Die neue Niederlassung erscheint sofort im Header-Switcher.</div>
       <label class="modal-label">Name der Niederlassung</label>
-      <input class="modal-input" type="text" id="nlNameInput" placeholder="z.B. Gießen, München, Berlin …"
-        onkeydown="if(event.key==='Enter')confirmAddNL()">
+      <input class="modal-input" type="text" id="nlNameInput" placeholder="z.B. Gießen, München …" onkeydown="if(event.key==='Enter')confirmAddNL()">
       <div class="modal-actions">
         <button class="modal-btn-primary" onclick="confirmAddNL()">Hinzufügen</button>
         <button class="modal-btn-ghost" onclick="closeModal('nlModal')">Abbrechen</button>
@@ -299,60 +288,34 @@
   <div class="modal" id="importModal">
     <div class="modal-content modal-content-wide">
       <button class="modal-close" onclick="closeModal('importModal')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
       <div class="modal-title">Daten importieren</div>
-
-      <!-- Format guide -->
       <div class="import-format-box">
         <div class="import-format-title">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          Format: <code>DD.MM.YYYY;Zielort</code> — ein Eintrag pro Zeile, oder mehrere durch <code>;</code> getrennt
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Format: <code>DD.MM.YYYY;Zielort</code> — ein Eintrag pro Zeile, mehrere durch <code>;</code> trennen
         </div>
         <div class="import-format-examples">
-          <div class="import-format-line"><span class="import-line-num">1</span><span>03.02.2026;Gröditz</span></div>
-          <div class="import-format-line"><span
-              class="import-line-num">2</span><span>03.02.2026;Gröditz;04.02.2026;Berlin</span></div>
-          <div class="import-format-line"><span class="import-line-num">3</span><span># Kommentare mit # werden
-              ignoriert</span></div>
-          <div class="import-format-line"><span
-              class="import-line-num">4</span><span>15.03.2026;Hamburg;15.03.2026;München;15.03.2026;Frankfurt</span>
-          </div>
+          <div class="import-format-line"><span class="import-line-num">1</span><span>03.03.2026;Hamburg</span></div>
+          <div class="import-format-line"><span class="import-line-num">2</span><span>03.03.2026;Hamburg;04.03.2026;Berlin</span></div>
+          <div class="import-format-line"><span class="import-line-num">3</span><span># Kommentare mit # werden ignoriert</span></div>
         </div>
       </div>
-
-      <!-- Niederlassung selector -->
       <div class="import-nl-row">
         <label class="modal-label" style="margin:0">Niederlassung</label>
         <select class="import-nl-select" id="importNlSelect"></select>
       </div>
-
-      <!-- Textarea + file -->
       <div class="import-input-row">
-        <textarea class="import-textarea" id="importTextarea" placeholder="Hier Text einfügen oder .txt Datei laden…"
-          oninput="updateImportPreview()"></textarea>
+        <textarea class="import-textarea" id="importTextarea" placeholder="Hier Text einfügen oder .txt Datei laden…" oninput="updateImportPreview()"></textarea>
       </div>
-
       <div class="import-file-row">
         <button class="import-file-btn" onclick="pickImportFile()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           .txt Datei laden
         </button>
         <div class="import-preview-info" id="importPreviewInfo">—</div>
       </div>
-
       <div class="modal-actions">
         <button class="modal-btn-primary" onclick="executeImport()">Importieren</button>
         <button class="modal-btn-ghost" onclick="closeModal('importModal')">Abbrechen</button>
@@ -360,23 +323,7 @@
     </div>
   </div>
 
-  <!-- IMPORT STATISTICS MODAL -->
-  <div class="modal-backdrop" id="importStatsModal-backdrop" onclick="closeModal('importStatsModal')"></div>
-  <div class="modal" id="importStatsModal">
-    <div class="modal-content modal-content-wide">
-      <button class="modal-close" onclick="closeModal('importStatsModal')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-      <div class="modal-title">Import-Statistik</div>
-      <div id="importStatsBody"><!-- filled by JS --></div>
-    </div>
-  </div>
-
-  <!-- hidden file input for import -->
+  <!-- Hidden file input for import -->
   <input type="file" id="importFileInput" accept=".txt,.csv" style="display:none" onchange="loadImportFile(event)">
 
   <!-- TOAST STACK -->
@@ -385,5 +332,4 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="dispobook.js"></script>
 </body>
-
 </html>
