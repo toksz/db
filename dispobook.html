@@ -380,16 +380,17 @@
         </div>
         <div class="modal-form-side" id="tourDetailFormSide">
 
-          <!-- Row 1: Name + TR-Nr + Status + Date (for staging/AI tours) -->
+          <!-- Row 1: Name + Date + Status -->
           <div class="detail-row" style="display:flex;gap:10px;flex-wrap:wrap">
-            <div class="detail-field" style="flex:2;min-width:160px">
+            <div class="detail-field" style="flex:2;min-width:180px">
               <label class="modal-label" for="detailName">Bezeichnung<span class="required-star"
                   aria-hidden="true">*</span></label>
               <input class="modal-input" type="text" id="detailName" placeholder="z.B. Hamburg, Kundenbesuch…" required>
-            </div>
-            <div class="detail-field" style="flex:1;min-width:120px">
-              <label class="modal-label">Strieder Transportnr.</label>
-              <input class="modal-input" type="text" id="detailTransportnummer" placeholder="TR-…">
+              <div style="margin-top:5px">
+                <label class="modal-label" style="font-size:0.68rem;color:var(--text-4);margin:0">Transport-ID</label>
+                <input class="modal-input" type="text" id="detailTransportnummer" placeholder="TR-…"
+                  style="padding:5px 10px;font-size:0.78rem;background:var(--surface-3);border-color:var(--border-xs)">
+              </div>
             </div>
             <div class="detail-field detail-field-narrow" id="detailDateWrap" style="flex:1;min-width:130px">
               <label class="modal-label">Tag / Datum</label>
@@ -425,15 +426,27 @@
           <div class="detail-row detail-row-3">
             <div class="detail-field">
               <label class="modal-label">Startort / Abfahrtsadr.</label>
-              <input class="modal-input" type="text" id="detailStartort" placeholder="Firma, Ort…" list="dl-adressen">
+              <div class="addr-ac-wrap">
+                <input class="modal-input addr-autocomplete" type="text" id="detailStartort" placeholder="Firma, Ort…"
+                  list="dl-adressen" autocomplete="off">
+                <div class="addr-ac-dropdown" id="ac-detailStartort"></div>
+              </div>
             </div>
             <div class="detail-field">
               <label class="modal-label">Absender</label>
-              <input class="modal-input" type="text" id="detailAbsender" placeholder="Firma, Ort…" list="dl-adressen">
+              <div class="addr-ac-wrap">
+                <input class="modal-input addr-autocomplete" type="text" id="detailAbsender" placeholder="Firma, Ort…"
+                  list="dl-adressen" autocomplete="off">
+                <div class="addr-ac-dropdown" id="ac-detailAbsender"></div>
+              </div>
             </div>
             <div class="detail-field">
               <label class="modal-label">Empfänger</label>
-              <input class="modal-input" type="text" id="detailEmpfaenger" placeholder="Firma, Ort…" list="dl-adressen">
+              <div class="addr-ac-wrap">
+                <input class="modal-input addr-autocomplete" type="text" id="detailEmpfaenger" placeholder="Firma, Ort…"
+                  list="dl-adressen" autocomplete="off">
+                <div class="addr-ac-dropdown" id="ac-detailEmpfaenger"></div>
+              </div>
             </div>
           </div>
 
@@ -471,21 +484,31 @@
             </div>
           </div>
 
+          <!-- Gewicht & Maße -->
           <div class="detail-field" style="margin-bottom:15px; border-top:1px solid var(--border-sm); padding-top:15px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <label class="modal-label" style="margin:0">Sendungspositionen</label>
-              <button class="modal-btn-ghost" type="button" onclick="addPositionRow()"
-                style="padding:4px 8px;font-size:0.7rem">
-                + Position hinzufügen
-              </button>
-            </div>
-            <div id="positionsContainer" style="display:flex;flex-direction:column;gap:8px"></div>
-            <div
-              style="display:flex;gap:12px;margin-top:10px;padding:10px;background:var(--surface-2);border-radius:var(--r-md)">
-              <div style="font-size:0.8rem;color:var(--text-3)">Gesamtgewicht: <strong id="calcTotalWeight"
-                  style="color:var(--text-1)">0</strong> kg</div>
-              <div style="font-size:0.8rem;color:var(--text-3)">Lademeter: <strong id="calcTotalLdm"
-                  style="color:var(--text-1)">0.00</strong> LDM</div>
+            <label class="modal-label" style="margin-bottom:10px">Gewicht & Maße</label>
+            <div class="detail-row detail-row-3" style="margin-bottom:0">
+              <div class="detail-field">
+                <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Gesamtgewicht (kg)</label>
+                <input class="modal-input" type="number" id="detailGewicht" placeholder="0" min="0" step="1">
+              </div>
+              <div class="detail-field">
+                <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Lademeter (LDM)</label>
+                <input class="modal-input" type="number" id="detailLademeter" placeholder="0.00" min="0" step="0.01">
+              </div>
+              <div class="detail-field">
+                <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Maße L × B × H (cm)</label>
+                <div style="display:flex;gap:4px">
+                  <input class="modal-input" type="number" id="detailMassL" placeholder="L" min="0"
+                    style="flex:1;text-align:center">
+                  <span style="color:var(--text-4);align-self:center;font-size:0.75rem">×</span>
+                  <input class="modal-input" type="number" id="detailMassB" placeholder="B" min="0"
+                    style="flex:1;text-align:center">
+                  <span style="color:var(--text-4);align-self:center;font-size:0.75rem">×</span>
+                  <input class="modal-input" type="number" id="detailMassH" placeholder="H" min="0"
+                    style="flex:1;text-align:center">
+                </div>
+              </div>
             </div>
           </div>
 
