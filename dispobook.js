@@ -1207,7 +1207,8 @@ function handleExport() {
     }
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), nl.slice(0, 31));
   }
-  XLSX.writeFile(wb, 'DispoBook_Export.xlsx');
+  const dateStr = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `DispoBook_Export_${dateStr}.xlsx`);
   toast('Export erfolgreich', 'success');
 }
 
@@ -1568,8 +1569,6 @@ async function handlePdfUpload(event) {
     }
     document.getElementById('detailStatus').value = 'pending';
     renderColorPicker('');
-    currentPositions = [];
-    renderPositions();
     currentAttachments = [];
     renderAttachments();
 
