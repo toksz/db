@@ -14,6 +14,8 @@ let editingTourId = null;
 let dragId = null;
 let collapsedSections = new Set();
 let filterPanelOpen = false;
+let currentViewMode = 'week'; // 'today' | 'week' | 'month'
+let statsVisible = true;
 
 // ─── Color System ─────────────────────────────────────────────────────────────
 const TOUR_COLORS = [
@@ -187,7 +189,7 @@ function initApp() {
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
-function render() { renderNLSwitcher(); renderWeekLabel(); renderStats(); renderGrid(); renderStagingTray(); updateFilterBadge(); }
+function render() { renderNLSwitcher(); renderWeekLabel(); renderStats(); renderViewModeSelector(); renderGrid(); renderStagingTray(); updateFilterBadge(); }
 
 // ─── NL Switcher ─────────────────────────────────────────────────────────────
 function renderNLSwitcher() {
@@ -215,13 +217,47 @@ function switchNL(dir) {
 
 // ─── Week Nav ─────────────────────────────────────────────────────────────────
 function renderWeekLabel() {
-  const end = addDays(currentWeekStart, 6);
-  const kw = getISOWeek(currentWeekStart);
-  const s = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
-  document.getElementById('weekLabel').textContent = `KW ${kw} · ${s(currentWeekStart)} – ${s(end)}`;
+  const lbl = document.getElementById('weekLabel');
+  if (!lbl) return;
+  if (currentViewMode === 'today') {
+    const today = new Date();
+    lbl.textContent = `${DAY_NAMES[(today.getDay() + 6) % 7]}, ${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
+  } else if (currentViewMode === 'month') {
+    const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    lbl.textContent = `${months[currentWeekStart.getMonth()]} ${currentWeekStart.getFullYear()}`;
+  } else {
+    const end = addDays(currentWeekStart, 6);
+    const kw = getISOWeek(currentWeekStart);
+    const s = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
+    lbl.textContent = `KW ${kw} · ${s(currentWeekStart)} – ${s(end)}`;
+  }
 }
 function changeWeek(dir) { currentWeekStart = addDays(currentWeekStart, dir * 7); render(); }
 function goToday() { currentWeekStart = getMonday(new Date()); render(); }
+function setViewMode(mode) {
+  currentViewMode = mode;
+  if (mode === 'today') { currentWeekStart = getMonday(new Date()); }
+  render();
+}
+function renderViewModeSelector() {
+  const btns = document.querySelectorAll('.view-mode-btn');
+  btns.forEach(b => b.classList.toggle('active', b.dataset.mode === currentViewMode));
+  // Show/hide prev/next arrows in today/month mode
+  const prevBtn = document.getElementById('weekNavPrev');
+  const nextBtn = document.getElementById('weekNavNext');
+  if (prevBtn) prevBtn.style.display = currentViewMode === 'today' ? 'none' : '';
+  if (nextBtn) nextBtn.style.display = currentViewMode === 'today' ? 'none' : '';
+}
+function toggleStatsRow() {
+  statsVisible = !statsVisible;
+  const row = document.getElementById('statsRow');
+  if (row) row.style.display = statsVisible ? '' : 'none';
+  const btn = document.getElementById('statsToggleBtn');
+  if (btn) btn.title = statsVisible ? 'Statistiken ausblenden' : 'Statistiken einblenden';
+}
+function openUnifiedImportModal() {
+  openModal('unifiedImportModal');
+}
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 function renderStats() {
@@ -308,26 +344,44 @@ function renderGrid() {
   const today = fmt(new Date());
   const tours = db.tours[currentNL] || {};
 
+  // Build list of date keys to display
+  let dateKeys = [];
+  if (currentViewMode === 'today') {
+    dateKeys = [today];
+  } else if (currentViewMode === 'month') {
+    const firstDay = new Date(currentWeekStart.getFullYear(), currentWeekStart.getMonth(), 1);
+    const lastDay = new Date(currentWeekStart.getFullYear(), currentWeekStart.getMonth() + 1, 0);
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      dateKeys.push(fmt(new Date(d)));
+    }
+  } else {
+    for (let i = 0; i < 7; i++) dateKeys.push(fmt(addDays(currentWeekStart, i)));
+  }
+
   const daySelect = document.getElementById('addTourDaySelect');
   if (daySelect) {
     const prev = daySelect.value;
     daySelect.innerHTML = '';
-    for (let i = 0; i < 7; i++) {
-      const d = addDays(currentWeekStart, i);
-      const key = fmt(d);
+    dateKeys.forEach(key => {
+      const d = parseDate(key);
       const opt = document.createElement('option');
       opt.value = key;
-      opt.textContent = `${DAY_NAMES[i].slice(0, 2)} ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
+      opt.textContent = `${DAY_NAMES[(d.getDay() + 6) % 7].slice(0, 2)} ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
       daySelect.appendChild(opt);
-    }
+    });
     if (prev && daySelect.querySelector(`option[value="${prev}"]`)) daySelect.value = prev;
     else if (daySelect.querySelector(`option[value="${today}"]`)) daySelect.value = today;
   }
 
   grid.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    const d = addDays(currentWeekStart, i);
-    const key = fmt(d);
+  // Month view: use smaller columns
+  grid.style.gridTemplateColumns = currentViewMode === 'month'
+    ? 'repeat(auto-fill, minmax(160px, 1fr))'
+    : currentViewMode === 'today' ? '1fr' : '';
+
+  dateKeys.forEach(key => {
+    const d = parseDate(key);
+    const i = (d.getDay() + 6) % 7; // 0=Mon
     const dayData = tours[key] || { pending: [], done: [] };
     const isToday = key === today;
 
@@ -382,7 +436,7 @@ function renderGrid() {
         </div>
       </div>`;
     grid.appendChild(col);
-  }
+  });
   setupDragDrop();
   setupCardEvents();
   rebuildAutocomplete();

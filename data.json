@@ -1,5 +1,5 @@
 {
-  "version": 1773094487180,
+  "version": 1773102641942,
   "niederlassungen": [
     "Wetzlar"
   ],
@@ -147,7 +147,15 @@
         ]
       },
       "2026-03-10": {
-        "pending": [],
+        "pending": [
+          {
+            "id": "1773102617439_qwsre",
+            "name": "Hub Egelsbach",
+            "created": 1773102637944,
+            "updated": 1773102641838,
+            "verladen_am": null
+          }
+        ],
         "done": []
       },
       "2026-03-11": {
@@ -175,5 +183,11 @@
   "deletedTours": {
     "1773002457083_dt3hf": 1773002472389,
     "1773002264874_nu85a": 1773002473253
+  },
+  "stammdaten": {
+    "fahrer": [],
+    "fahrzeuge": [],
+    "frachtfuehrer": [],
+    "adressen": []
   }
 }

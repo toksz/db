@@ -110,21 +110,27 @@
         <!-- Week Nav -->
         <div class="header-center">
           <div class="week-nav">
-            <button class="week-btn" onclick="changeWeek(-1)" title="Vorherige Woche" aria-label="Vorherige Woche">
+            <button class="week-btn" id="weekNavPrev" onclick="changeWeek(-1)" title="Vorherige Woche"
+              aria-label="Vorherige Woche">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                 stroke-linecap="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
             <div class="week-label" id="weekLabel"></div>
-            <button class="week-btn" onclick="changeWeek(1)" title="Nächste Woche" aria-label="Nächste Woche">
+            <button class="week-btn" id="weekNavNext" onclick="changeWeek(1)" title="Nächste Woche"
+              aria-label="Nächste Woche">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                 stroke-linecap="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
             </button>
           </div>
-          <button class="btn-today" onclick="goToday()">Heute</button>
+          <div class="view-mode-switcher">
+            <button class="view-mode-btn active" data-mode="today" onclick="setViewMode('today')">Heute</button>
+            <button class="view-mode-btn" data-mode="week" onclick="setViewMode('week')">Woche</button>
+            <button class="view-mode-btn" data-mode="month" onclick="setViewMode('month')">Monat</button>
+          </div>
         </div>
 
         <!-- Actions -->
@@ -187,7 +193,7 @@
             </div>
           </div>
 
-          <button class="btn-export" onclick="openImportModal()" title="Daten importieren">
+          <button class="btn-export" onclick="openUnifiedImportModal()" title="Importieren">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
               stroke-linecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -249,7 +255,18 @@
       </div>
 
       <!-- STATS ROW -->
-      <div class="stats-row" id="statsRow"></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="stats-row" id="statsRow"></div>
+        <button id="statsToggleBtn" onclick="toggleStatsRow()" title="Statistiken ausblenden"
+          style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:6px;color:var(--text-3);line-height:0">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+            <line x1="1" y1="1" x2="23" y2="23" />
+          </svg>
+        </button>
+      </div>
 
       <!-- STAGING TRAY -->
       <div class="staging-tray" id="stagingTray">
