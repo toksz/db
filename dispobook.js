@@ -663,6 +663,14 @@ function addPromptGoDetail() {
   }
   document.getElementById('detailStatus').value = 'pending';
   renderColorPicker('');
+
+  const modalContent = document.querySelector('#tourDetailModal .modal-content-detail');
+  if (modalContent) modalContent.classList.remove('split-active');
+  const pdfSideKI = document.getElementById('pdfSideKI');
+  if (pdfSideKI) pdfSideKI.style.display = 'none';
+  const pdfIframeKI = document.getElementById('pdfIframeKI');
+  if (pdfIframeKI) pdfIframeKI.src = '';
+
   openModal('tourDetailModal');
 }
 
@@ -699,6 +707,13 @@ function openTourDetail(id) {
 
   currentAttachments = JSON.parse(JSON.stringify(tour.attachments || []));
   renderAttachments();
+
+  const modalContent = document.querySelector('#tourDetailModal .modal-content-detail');
+  if (modalContent) modalContent.classList.remove('split-active');
+  const pdfSideKI = document.getElementById('pdfSideKI');
+  if (pdfSideKI) pdfSideKI.style.display = 'none';
+  const pdfIframeKI = document.getElementById('pdfIframeKI');
+  if (pdfIframeKI) pdfIframeKI.src = '';
 
   openModal('tourDetailModal');
 }
@@ -1369,3 +1384,158 @@ document.addEventListener('click', e => {
   const menu = document.getElementById('ctxMenu');
   if (menu?.classList.contains('open') && !menu.contains(e.target)) closeCtxMenu();
 });
+
+// ─── Gemini KI Import ─────────────────────────────────────────────────────────
+function promptGeminiApiKey() {
+  const current = localStorage.getItem('geminiApiKey') || '';
+  const key = prompt('Bitte Gemini API-Schlüssel (gemini-1.5-flash) eingeben:', current);
+  if (key !== null) {
+    localStorage.setItem('geminiApiKey', key.trim());
+    toast('API-Schlüssel gespeichert', 'success');
+  }
+}
+
+async function handlePdfUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64Data = e.target.result;
+
+    // UI prep
+    document.getElementById('pdfInputKI').value = '';
+    const iframe = document.getElementById('pdfIframeKI');
+    const spinner = document.getElementById('pdfSpinnerKI');
+    const modalContent = document.querySelector('#tourDetailModal .modal-content-detail');
+
+    // Clear form
+    const map = {
+      detailName: '', detailAbsender: '', detailEmpfaenger: '',
+      detailFahrer: '', detailFahrzeug: '', detailFrachtfuehrer: '',
+      detailKommissionierliste: '', detailFrachtpreis: '', detailBesonderheiten: '',
+      detailLiefertermin: '', detailVerladen: '',
+      detailTransportnummer: '', detailTourtyp: '', detailStartort: '',
+      detailEmpfAnsprechpartner: '', detailEmpfRampe: '', detailEmpfZeitfenster: '',
+      detailReferenznummer: ''
+    };
+    for (const [fid, val] of Object.entries(map)) {
+      const el = document.getElementById(fid);
+      if (el) el.value = val;
+    }
+    document.getElementById('detailStatus').value = 'pending';
+    renderColorPicker('');
+    currentPositions = [];
+    renderPositions();
+    currentAttachments = [];
+    renderAttachments();
+
+    // Layout activate
+    modalContent.classList.add('split-active');
+    document.getElementById('pdfSideKI').style.display = 'block';
+    iframe.src = base64Data;
+    spinner.style.display = 'flex';
+    openModal('tourDetailModal');
+
+    try {
+      const parsedData = await callGeminiAPI(base64Data);
+      applyKiDataToForm(parsedData);
+      toast('Dokument erfolgreich analysiert', 'success');
+    } catch (err) {
+      toast('Fehler bei der KI-Analyse', 'error');
+      console.error(err);
+    } finally {
+      spinner.style.display = 'none';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function callGeminiAPI(base64Data) {
+  const apiKey = localStorage.getItem('geminiApiKey');
+  if (!apiKey) { throw new Error('No API Key'); }
+
+  const base64Clean = base64Data.split(',')[1];
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { text: "Du bist ein Disponent einer Spedition. Extrahiere die Frachtdaten aus dem PDF in das angegebene JSON-Schema. Konvertiere LDM zu der Property 'lademeter', Gewicht (kg) zu 'gesamtgewicht'. Anzahl zu 'anzahl', Abmessungen zu 'lxbxh', Transportnummer/Tournummer zu 'transportnummer', Ladeadresse/Übernahme zu 'startort' oder 'absender', Empfangsadresse zu 'empfaenger', Auftragsnummer/Refnr zu 'referenznummer'." },
+          { inlineData: { mimeType: "application/pdf", data: base64Clean } }
+        ]
+      }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            bezeichnung: { type: "STRING" },
+            transportnummer: { type: "STRING" },
+            startort: { type: "STRING" },
+            absender: { type: "STRING" },
+            empfaenger: { type: "STRING" },
+            empf_ansprechpartner: { type: "STRING" },
+            empf_rampe: { type: "STRING" },
+            empf_zeitfenster: { type: "STRING" },
+            referenznummer: { type: "STRING" },
+            gesamtgewicht: { type: "NUMBER" },
+            lademeter: { type: "NUMBER" },
+            sendungspositionen: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  anzahl: { type: "NUMBER" },
+                  bezeichnung: { type: "STRING" },
+                  gewicht: { type: "NUMBER" },
+                  lxbxh: { type: "STRING" }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+  });
+
+  if (!response.ok) throw new Error('API request failed');
+  const data = await response.json();
+  const parsedText = data.candidates[0].content.parts[0].text;
+  return JSON.parse(parsedText);
+}
+
+function applyKiDataToForm(ki) {
+  const mapStr = {
+    detailName: ki.bezeichnung || 'Neue Tour aus PDF',
+    detailTransportnummer: ki.transportnummer || '',
+    detailStartort: ki.startort || '',
+    detailAbsender: ki.absender || '',
+    detailEmpfaenger: ki.empfaenger || '',
+    detailEmpfAnsprechpartner: ki.empf_ansprechpartner || '',
+    detailEmpfRampe: ki.empf_rampe || '',
+    detailEmpfZeitfenster: ki.empf_zeitfenster || '',
+    detailReferenznummer: ki.referenznummer || ''
+  };
+  for (const [id, val] of Object.entries(mapStr)) {
+    const el = document.getElementById(id);
+    if (el && val) el.value = val;
+  }
+
+  editingStagingId = uid();
+  stagingTours.push({ id: editingStagingId, name: mapStr.detailName });
+  editingTourId = null;
+
+  if (ki.sendungspositionen && ki.sendungspositionen.length > 0) {
+    currentPositions = ki.sendungspositionen.map(p => ({
+      id: uid(),
+      anz: p.anzahl || 1,
+      bez: p.bezeichnung || '',
+      kg: p.gewicht || null,
+      lxbxh: p.lxbxh || ''
+    }));
+    renderPositions();
+  }
+}

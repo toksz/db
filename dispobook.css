@@ -1301,7 +1301,70 @@ main {
    max-width: 680px;
    max-height: 92vh;
    overflow-y: auto;
-   padding: 28px 32px
+   padding: 28px 32px;
+   transition: max-width var(--t-base), width var(--t-base);
+}
+
+.modal-content-detail.split-active {
+   max-width: 90vw !important;
+   width: 1200px;
+}
+
+.modal-split-layout {
+   display: flex;
+   gap: 24px;
+   align-items: stretch;
+}
+
+.modal-pdf-side {
+   flex: 1;
+   min-width: 0;
+   position: relative;
+   border-radius: var(--r-md);
+   overflow: hidden;
+   min-height: 60vh;
+}
+
+.modal-form-side {
+   flex: 1;
+   min-width: 0;
+   display: flex;
+   flex-direction: column;
+}
+
+.pdf-spinner {
+   position: absolute;
+   inset: 0;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   background: rgba(255, 255, 255, 0.8);
+   backdrop-filter: blur(4px);
+   z-index: 10;
+   font-weight: 600;
+   color: var(--text-2);
+   gap: 12px;
+   border-radius: var(--r-md);
+}
+
+.dark-mode .pdf-spinner {
+   background: rgba(30, 30, 30, 0.8);
+}
+
+.spinner-ring {
+   width: 32px;
+   height: 32px;
+   border: 4px solid var(--border-sm);
+   border-top-color: var(--primary);
+   border-radius: 50%;
+   animation: spinner-spin 1s linear infinite;
+}
+
+@keyframes spinner-spin {
+   to {
+      transform: rotate(360deg);
+   }
 }
 
 @keyframes fade-in {
