@@ -127,8 +127,8 @@
             </button>
           </div>
           <div class="view-mode-switcher">
-            <button class="view-mode-btn active" data-mode="today" onclick="setViewMode('today')">Heute</button>
-            <button class="view-mode-btn" data-mode="week" onclick="setViewMode('week')">Woche</button>
+            <button class="view-mode-btn" data-mode="today" onclick="setViewMode('today')">Heute</button>
+            <button class="view-mode-btn active" data-mode="week" onclick="setViewMode('week')">Woche</button>
             <button class="view-mode-btn" data-mode="month" onclick="setViewMode('month')">Monat</button>
           </div>
         </div>
@@ -237,20 +237,6 @@
           <input class="add-tour-bar-input" id="addTourName" type="text" placeholder="Neue Tour hinzufügen…"
             onkeydown="addTourKeyDown(event)" autocomplete="off">
           <button class="add-tour-bar-btn" onclick="addTourFromBar()">Hinzufügen</button>
-          <!-- KI Import Button -->
-          <button class="add-tour-bar-btn" style="background:var(--accent);margin-left:8px"
-            onclick="document.getElementById('pdfInputKI').click()"
-            title="Tour aus PDF (Lieferschein/Transportauftrag) mit KI importieren">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round" style="margin-right:4px">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            PDF Import (KI)
-          </button>
         </div>
       </div>
 
@@ -649,8 +635,66 @@
     </div>
   </div>
 
-  <input type="file" id="importFileInput" accept=".txt,.csv" style="display:none" onchange="loadImportFile(event)">
+  <input type="file" id="importFileInput" accept=".txt,.csv,.xls,.xlsx" style="display:none"
+    onchange="loadImportFile(event)">
   <input type="file" id="pdfInputKI" accept="application/pdf" style="display:none" onchange="handlePdfUpload(event)">
+
+  <!-- UNIFIED IMPORT MODAL -->
+  <div class="modal-backdrop" id="unifiedImportModal-backdrop" onclick="closeModal('unifiedImportModal')"></div>
+  <div class="modal" id="unifiedImportModal">
+    <div class="modal-content" style="max-width:520px">
+      <button class="modal-close" onclick="closeModal('unifiedImportModal')" aria-label="Schließen"><svg width="14"
+          height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg></button>
+      <div class="modal-title">Tour importieren</div>
+      <div class="modal-sub">Wählen Sie die Importmethode für Ihre Tourdaten.</div>
+
+      <div class="unified-import-options">
+        <!-- Option 1: Text / Spreadsheet Import -->
+        <div class="unified-import-card" onclick="closeModal('unifiedImportModal'); openImportModal()">
+          <div class="unified-import-card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </div>
+          <div class="unified-import-card-title">Datei-Import</div>
+          <div class="unified-import-card-desc">Text- oder Tabellendatei laden oder Daten als Text einfügen</div>
+          <div class="unified-import-card-formats">
+            <span class="unified-import-format-tag">.txt</span>
+            <span class="unified-import-format-tag">.csv</span>
+            <span class="unified-import-format-tag">.xls</span>
+            <span class="unified-import-format-tag">.xlsx</span>
+          </div>
+        </div>
+
+        <!-- Option 2: AI PDF Import -->
+        <div class="unified-import-card"
+          onclick="closeModal('unifiedImportModal'); document.getElementById('pdfInputKI').click()">
+          <div class="unified-import-card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <circle cx="12" cy="15" r="3"></circle>
+              <path d="M12 12v-2"></path>
+            </svg>
+          </div>
+          <div class="unified-import-card-title">KI-Import (PDF)</div>
+          <div class="unified-import-card-desc">Lieferschein oder Transportauftrag automatisch analysieren</div>
+          <div class="unified-import-card-formats">
+            <span class="unified-import-format-tag">.pdf</span>
+            <span class="unified-import-format-tag">KI</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="toast-stack"></div>
 
   <!-- STAMMDATEN MODAL -->

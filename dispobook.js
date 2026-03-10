@@ -315,7 +315,17 @@ function renderWeekLabel() {
     lbl.textContent = `KW ${kw} · ${s(currentWeekStart)} – ${s(end)}`;
   }
 }
-function changeWeek(dir) { currentWeekStart = addDays(currentWeekStart, dir * 7); render(); }
+function changeWeek(dir) {
+  if (currentViewMode === 'month') {
+    // Navigate by month
+    const d = new Date(currentWeekStart);
+    d.setMonth(d.getMonth() + dir);
+    currentWeekStart = d;
+  } else {
+    currentWeekStart = addDays(currentWeekStart, dir * 7);
+  }
+  render();
+}
 function goToday() { currentWeekStart = getMonday(new Date()); render(); }
 function setViewMode(mode) {
   currentViewMode = mode;
