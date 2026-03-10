@@ -318,6 +318,16 @@
             </svg></span>
           Niederlassung hinzufügen
         </button>
+        <button class="modal-menu-item" onclick="openModal('archiveModal'); closeModal('fileMenu');"
+          style="color:var(--amber-alt)">
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <polyline points="21 8 21 21 3 21 3 8"></polyline>
+              <rect x="1" y="3" width="22" height="5"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg></span>
+          Abgeschlossene Touren archivieren
+        </button>
 
         <div class="menu-section-divider"></div>
         <div class="menu-section-label">Einstellungen</div>
@@ -658,6 +668,25 @@
       <div class="modal-actions">
         <button class="modal-btn-primary" onclick="confirmAddNL()">Hinzufügen</button>
         <button class="modal-btn-ghost" onclick="closeModal('nlModal')">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARCHIVE MODAL -->
+  <div class="modal-backdrop" id="archiveModal-backdrop" onclick="closeModal('archiveModal')"></div>
+  <div class="modal" id="archiveModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('archiveModal')"><svg width="14" height="14" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg></button>
+      <div class="modal-title">Touren archivieren</div>
+      <div class="modal-sub">Alle abgeschlossenen Touren, die älter als 30 Tage sind, werden in eine separate Datei
+        ausgelagert und aus diesem Dispobuch entfernt.</div>
+      <div class="modal-actions">
+        <button class="modal-btn-primary" onclick="executeArchive()">Jetzt archivieren</button>
+        <button class="modal-btn-ghost" onclick="closeModal('archiveModal')">Abbrechen</button>
       </div>
     </div>
   </div>

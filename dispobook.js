@@ -7,6 +7,7 @@ let currentNL = null;
 let currentWeekStart = null;
 let saveTimer = null;
 let lastSavedVersion = null;
+let lastModifiedTime = 0;
 let isDark = false;
 let searchQuery = '';
 let activeFilters = { fahrer: '', fahrzeug: '', farbe: '', status: '' };
@@ -89,17 +90,13 @@ function collectAddressBook() {
   const sets = { adressen: new Set(), fahrer: new Set(), fahrzeug: new Set(), frachtfuehrer: new Set() };
 
   // From History
-  for (const nlKey of Object.keys(db.tours || {})) {
-    for (const day of Object.values(db.tours[nlKey] || {})) {
-      for (const t of [...(day.pending || []), ...(day.done || [])]) {
-        if (t.absender) sets.adressen.add(t.absender);
-        if (t.empfaenger) sets.adressen.add(t.empfaenger);
-        if (t.startort) sets.adressen.add(t.startort);
-        if (t.fahrer) sets.fahrer.add(t.fahrer);
-        if (t.fahrzeug) sets.fahrzeug.add(t.fahrzeug);
-        if (t.frachtfuehrer) sets.frachtfuehrer.add(t.frachtfuehrer);
-      }
-    }
+  for (const t of (db.toursArray || [])) {
+    if (t.absender) sets.adressen.add(t.absender);
+    if (t.empfaenger) sets.adressen.add(t.empfaenger);
+    if (t.startort) sets.adressen.add(t.startort);
+    if (t.fahrer) sets.fahrer.add(t.fahrer);
+    if (t.fahrzeug) sets.fahrzeug.add(t.fahrzeug);
+    if (t.frachtfuehrer) sets.frachtfuehrer.add(t.frachtfuehrer);
   }
 
   // From Stammdaten (highest priority autocomplete)
@@ -171,7 +168,9 @@ async function pickFile() {
   try {
     [fileHandle] = await window.showOpenFilePicker({ id: 'dispobook_data', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
     const file = await fileHandle.getFile();
+    lastModifiedTime = file.lastModified;
     db = JSON.parse(await file.text());
+    upgradeDatabase();
     lastSavedVersion = db.version;
     await saveHandleToIDB(fileHandle);
     initApp();
@@ -180,7 +179,9 @@ async function pickFile() {
 async function createNewFile() {
   try {
     fileHandle = await window.showSaveFilePicker({ id: 'dispobook_data', suggestedName: 'data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
-    db = { version: Date.now(), niederlassungen: ['Haupt'], tours: { 'Haupt': {} }, deletedTours: {}, stammdaten: { fahrer: [], fahrzeuge: [], frachtfuehrer: [], adressen: [] } };
+    db = { version: Date.now(), niederlassungen: ['Haupt'], toursArray: [], deletedTours: {}, stammdaten: { fahrer: [], fahrzeuge: [], frachtfuehrer: [], adressen: [] } };
+    const file = await fileHandle.getFile();
+    lastModifiedTime = file.lastModified;
     await saveHandleToIDB(fileHandle);
     await saveFile(); lastSavedVersion = db.version; initApp();
   } catch (e) { if (e.name !== 'AbortError') toast('Fehler beim Erstellen: ' + e.message, 'error'); }
@@ -195,7 +196,9 @@ async function tryRestoreHandle() {
     if (perm === 'granted') {
       fileHandle = handle;
       const file = await fileHandle.getFile();
+      lastModifiedTime = file.lastModified;
       db = JSON.parse(await file.text());
+      upgradeDatabase();
       lastSavedVersion = db.version;
       initApp();
       return;
@@ -217,7 +220,9 @@ function showResumeButton(handle) {
       if (perm === 'granted') {
         fileHandle = handle;
         const file = await fileHandle.getFile();
+        lastModifiedTime = file.lastModified;
         db = JSON.parse(await file.text());
+        upgradeDatabase();
         lastSavedVersion = db.version;
         await saveHandleToIDB(fileHandle);
         initApp();
@@ -226,26 +231,48 @@ function showResumeButton(handle) {
   };
   box.appendChild(btn);
 }
+function upgradeDatabase() {
+  if (db.tours && !db.toursArray) {
+    db.toursArray = [];
+    for (const nl in db.tours) {
+      for (const date in db.tours[nl]) {
+        for (const t of (db.tours[nl][date].pending || [])) {
+          t.niederlassung = nl;
+          t.dateKey = date;
+          t.status = 'pending';
+          db.toursArray.push(t);
+        }
+        for (const t of (db.tours[nl][date].done || [])) {
+          t.niederlassung = nl;
+          t.dateKey = date;
+          t.status = 'done';
+          db.toursArray.push(t);
+        }
+      }
+    }
+    delete db.tours;
+  }
+}
+
 async function saveFile() {
   if (!fileHandle) return;
   db.version = Date.now(); setSyncStatus('saving');
   try {
     const w = await fileHandle.createWritable();
 
-    // OPTIMIZE JSON: recursive cleanup to remove empty days
-    const cleanData = JSON.parse(JSON.stringify(db));
-    if (cleanData.tours) {
-      for (const nl in cleanData.tours) {
-        for (const date in cleanData.tours[nl]) {
-          const day = cleanData.tours[nl][date];
-          if ((!day.pending || day.pending.length === 0) && (!day.done || day.done.length === 0)) {
-            delete cleanData.tours[nl][date];
-          }
+    // OPTIMIZE JSON: auto cleanup deleted tours older than 30 days
+    if (db.deletedTours) {
+      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      for (const id in db.deletedTours) {
+        if (db.deletedTours[id] < thirtyDaysAgo) {
+          delete db.deletedTours[id];
         }
       }
     }
 
-    await w.write(JSON.stringify(cleanData, null, 2)); await w.close();
+    await w.write(JSON.stringify(db, null, 2)); await w.close();
+    const file = await fileHandle.getFile();
+    lastModifiedTime = file.lastModified;
     lastSavedVersion = db.version; setSyncStatus('saved');
   } catch { setSyncStatus('error'); toast('Fehler beim Speichern!', 'error'); }
 }
@@ -254,6 +281,9 @@ async function pollFile() {
   if (!fileHandle) return;
   try {
     const file = await fileHandle.getFile();
+    if (file.lastModified === lastModifiedTime) return;
+
+    lastModifiedTime = file.lastModified;
     const remote = JSON.parse(await file.text());
     if (remote.version !== lastSavedVersion && remote.version !== db.version)
       document.getElementById('conflictBanner').classList.add('visible');
@@ -299,9 +329,7 @@ function renderNLSwitcher() {
   nameEl.textContent = currentNL;
   prevBtn.disabled = idx <= 0;
   nextBtn.disabled = idx >= nls.length - 1;
-  const tours = db.tours[currentNL] || {};
-  let total = 0;
-  for (const day of Object.values(tours)) total += (day.pending || []).length + (day.done || []).length;
+  const total = (db.toursArray || []).filter(t => t.niederlassung === currentNL).length;
   const badge = document.getElementById('nlSwitcherCount');
   if (badge) { badge.textContent = total; badge.style.display = total > 0 ? '' : 'none'; }
 }
@@ -370,17 +398,15 @@ function openUnifiedImportModal() {
 function renderStats() {
   const row = document.getElementById('statsRow');
   if (!row) return;
-  const tours = db.tours[currentNL] || {};
+  const nlTours = (db.toursArray || []).filter(t => t.niederlassung === currentNL);
   let pending = 0, done = 0, totalWeight = 0, totalPrice = 0, overdue = 0;
   const today = fmt(new Date());
-  for (const day of Object.values(tours)) {
-    pending += (day.pending || []).length;
-    done += (day.done || []).length;
-    for (const t of [...(day.pending || []), ...(day.done || [])]) {
-      if (t.gewicht) totalWeight += Number(t.gewicht);
-      if (t.frachtpreis) totalPrice += Number(t.frachtpreis);
-      if (t.liefertermin && t.liefertermin.slice(0, 10) < today && !t.verladen_am) overdue++;
-    }
+  for (const t of nlTours) {
+    if (t.status === 'pending') pending++;
+    if (t.status === 'done') done++;
+    if (t.gewicht) totalWeight += Number(t.gewicht);
+    if (t.frachtpreis) totalPrice += Number(t.frachtpreis);
+    if (t.liefertermin && t.liefertermin.slice(0, 10) < today && !t.verladen_am) overdue++;
   }
   const total = pending + done;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -449,7 +475,7 @@ function matchesFilters(t) {
 function renderGrid() {
   const grid = document.getElementById('daysGrid');
   const today = fmt(new Date());
-  const tours = db.tours[currentNL] || {};
+  const nlTours = (db.toursArray || []).filter(t => t.niederlassung === currentNL);
 
   // Build list of date keys to display
   let dateKeys = [];
@@ -489,11 +515,10 @@ function renderGrid() {
   dateKeys.forEach(key => {
     const d = parseDate(key);
     const i = (d.getDay() + 6) % 7; // 0=Mon
-    const dayData = tours[key] || { pending: [], done: [] };
     const isToday = key === today;
 
-    const pendingAll = dayData.pending || [];
-    const doneAll = dayData.done || [];
+    const pendingAll = nlTours.filter(t => t.dateKey === key && t.status === 'pending');
+    const doneAll = nlTours.filter(t => t.dateKey === key && t.status === 'done');
     const pending = pendingAll.filter(t => matchesFilters(t) && (!activeFilters.status || activeFilters.status === 'pending'));
     const done = doneAll.filter(t => matchesFilters(t) && (!activeFilters.status || activeFilters.status === 'done'));
 
@@ -663,25 +688,20 @@ function setupCardEvents() {
 
 // ─── Tour Helpers ─────────────────────────────────────────────────────────────
 function findTour(id) {
-  for (const [dateKey, day] of Object.entries(db.tours[currentNL] || {})) {
-    for (const t of (day.pending || [])) if (t.id === id) return { tour: t, dateKey, status: 'pending' };
-    for (const t of (day.done || [])) if (t.id === id) return { tour: t, dateKey, status: 'done' };
-  }
-  return null;
+  const tour = (db.toursArray || []).find(t => t.id === id);
+  if (!tour) return null;
+  return { tour, dateKey: tour.dateKey, status: tour.status };
 }
 function toggleTourStatus(id) {
   const found = findTour(id);
   if (!found) return;
-  const { tour, dateKey, status } = found;
-  const day = db.tours[currentNL][dateKey];
+  const { tour, status } = found;
   if (status === 'pending') {
-    day.pending = day.pending.filter(t => t.id !== id);
+    tour.status = 'done';
     tour.verladen_am = fmtDateTime(new Date());
-    day.done = [...(day.done || []), tour];
   } else {
-    day.done = day.done.filter(t => t.id !== id);
+    tour.status = 'pending';
     tour.verladen_am = null;
-    day.pending = [...(day.pending || []), tour];
   }
   tour.updated = Date.now();
   scheduleSave(); render();
@@ -700,10 +720,9 @@ function confirmDeleteExecute() {
 }
 
 function deleteTour(id) {
-  const found = findTour(id);
-  if (!found) return;
-  const { dateKey, status } = found;
-  db.tours[currentNL][dateKey][status] = db.tours[currentNL][dateKey][status].filter(t => t.id !== id);
+  const idx = db.toursArray.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  db.toursArray.splice(idx, 1);
   db.deletedTours = db.deletedTours || {};
   db.deletedTours[id] = Date.now();
   scheduleSave(); render();
@@ -775,10 +794,9 @@ function dropStagingTour(sid, dateKey, status) {
   if (idx === -1) return;
   const { id, name } = stagingTours[idx];
   stagingTours.splice(idx, 1);
-  if (!db.tours[currentNL]) db.tours[currentNL] = {};
-  if (!db.tours[currentNL][dateKey]) db.tours[currentNL][dateKey] = { pending: [], done: [] };
-  const tour = { id, name, created: Date.now(), updated: Date.now() };
-  db.tours[currentNL][dateKey][status || 'pending'].push(tour);
+  if (!db.toursArray) db.toursArray = [];
+  const tour = { id, name, created: Date.now(), updated: Date.now(), niederlassung: currentNL, dateKey, status: status || 'pending' };
+  db.toursArray.push(tour);
   scheduleSave(); render();
   const col = document.querySelector(`.day-col[data-date="${dateKey}"]`);
   if (col) { col.classList.add('remote-flash'); setTimeout(() => col.classList.remove('remote-flash'), 1400); }
@@ -974,27 +992,26 @@ function saveTourDetail() {
   tourObj.updated = Date.now();
 
   if (editingTourId) {
-    const { dateKey, status: oldStatus } = found;
+    const { status: oldStatus } = found;
     const newStatus = document.getElementById('detailStatus').value;
     if (newStatus !== oldStatus) {
-      const day = db.tours[currentNL][dateKey];
-      day[oldStatus] = day[oldStatus].filter(t => t.id !== tourObj.id);
-      if (!day[newStatus]) day[newStatus] = [];
+      tourObj.status = newStatus;
       if (newStatus === 'done' && !tourObj.verladen_am) tourObj.verladen_am = fmtDateTime(new Date());
       if (newStatus === 'pending') tourObj.verladen_am = null;
-      day[newStatus].push(tourObj);
     }
   }
 
   editingStagingId = null;
   closeModal('tourDetailModal');
-  // ─ If this was a KI staging tour, place it directly into db.tours ─
+  // ─ If this was a KI staging tour, place it directly into db.toursArray ─
   if (!editingTourId) {
     const dateKey = document.getElementById('detailDate')?.value || fmt(new Date());
-    if (!db.tours[currentNL]) db.tours[currentNL] = {};
-    if (!db.tours[currentNL][dateKey]) db.tours[currentNL][dateKey] = { pending: [], done: [] };
     const status = document.getElementById('detailStatus')?.value || 'pending';
-    db.tours[currentNL][dateKey][status].push(tourObj);
+    tourObj.dateKey = dateKey;
+    tourObj.status = status;
+    tourObj.niederlassung = currentNL;
+    if (!db.toursArray) db.toursArray = [];
+    db.toursArray.push(tourObj);
   }
   db.version = Date.now();
   scheduleSave(); render();
@@ -1083,11 +1100,13 @@ function moveTour(id, targetDate, targetStatus) {
   if (!found) return;
   const { tour, dateKey, status } = found;
   if (dateKey === targetDate && status === targetStatus) return;
-  db.tours[currentNL][dateKey][status] = db.tours[currentNL][dateKey][status].filter(t => t.id !== id);
-  if (!db.tours[currentNL][targetDate]) db.tours[currentNL][targetDate] = { pending: [], done: [] };
+
+  tour.dateKey = targetDate;
+  tour.status = targetStatus;
+
   if (targetStatus === 'done' && !tour.verladen_am) tour.verladen_am = fmtDateTime(new Date());
   if (targetStatus === 'pending') tour.verladen_am = null;
-  db.tours[currentNL][targetDate][targetStatus] = [...(db.tours[currentNL][targetDate][targetStatus] || []), tour];
+
   tour.updated = Date.now();
   scheduleSave(); render();
 }
@@ -1098,7 +1117,7 @@ function confirmAddNL() {
   const name = input.value.trim();
   if (!name) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 400); return; }
   if (db.niederlassungen.includes(name)) { toast('Niederlassung existiert bereits', 'error'); return; }
-  db.niederlassungen.push(name); db.tours[name] = {}; currentNL = name;
+  db.niederlassungen.push(name); currentNL = name;
   input.value = ''; closeModal('nlModal'); scheduleSave(); render();
   toast(`Niederlassung „${name}" hinzugefügt`, 'success');
 }
@@ -1169,11 +1188,11 @@ function executeImport() {
   const nl = document.getElementById('importNlSelect').value;
   const entries = parseImportText(document.getElementById('importTextarea').value);
   if (!entries.length) { toast('Keine gültigen Einträge', 'error'); return; }
-  db.tours[nl] = db.tours[nl] || {};
+  if (!db.toursArray) db.toursArray = [];
+
   let added = 0;
   for (const { dateKey, name } of entries) {
-    if (!db.tours[nl][dateKey]) db.tours[nl][dateKey] = { pending: [], done: [] };
-    db.tours[nl][dateKey].pending.push({ id: uid(), name, created: Date.now(), updated: Date.now() });
+    db.toursArray.push({ id: uid(), name, created: Date.now(), updated: Date.now(), niederlassung: nl, dateKey, status: 'pending' });
     added++;
   }
   closeModal('importModal'); currentNL = nl;
@@ -1190,12 +1209,21 @@ function handleExport() {
     const rows = [['Datum', 'Wochentag', 'Name', 'Status', 'Farbe', 'Absender', 'Empfänger', 'Fahrer',
       'Fahrzeug', 'Frachtführer', 'Kommissionierliste', 'Gewicht (kg)', 'Liefertermin',
       'Ladebereit ab', 'Verladen am', 'Frachtpreis (€)', 'Besonderheiten']];
-    for (const dateKey of Object.keys(db.tours[nl] || {}).sort()) {
-      const day = db.tours[nl][dateKey];
+
+    // Get unique sorted dates for this NL
+    const nlTours = (db.toursArray || []).filter(t => t.niederlassung === nl);
+    const dateKeys = [...new Set(nlTours.map(t => t.dateKey))].sort();
+
+    for (const dateKey of dateKeys) {
       const d = parseDate(dateKey);
       const dayName = DAY_NAMES[(d.getDay() + 6) % 7];
       const dateF = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-      for (const [list, lbl] of [[(day.pending || []), 'Ausstehend'], [(day.done || []), 'Disponiert']]) {
+
+      const dayTours = nlTours.filter(t => t.dateKey === dateKey);
+      const pendingTours = dayTours.filter(t => t.status === 'pending');
+      const doneTours = dayTours.filter(t => t.status === 'done');
+
+      for (const [list, lbl] of [[pendingTours, 'Ausstehend'], [doneTours, 'Disponiert']]) {
         for (const t of list) {
           rows.push([dateF, dayName, t.name, lbl, getColor(t.farbe)?.label || '',
             t.absender || '', t.empfaenger || '', t.fahrer || '', t.fahrzeug || '',
@@ -1210,6 +1238,51 @@ function handleExport() {
   const dateStr = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `DispoBook_Export_${dateStr}.xlsx`);
   toast('Export erfolgreich', 'success');
+}
+
+async function executeArchive() {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoff = fmt(thirtyDaysAgo);
+
+  const toArchive = db.toursArray.filter(t => t.status === 'done' && t.dateKey < cutoff);
+
+  if (toArchive.length === 0) {
+    toast('Keine Touren zum Archivieren gefunden (älter als 30 Tage).', 'info');
+    closeModal('archiveModal');
+    return;
+  }
+
+  try {
+    // Prompt for new archive file
+    const archiveHandle = await window.showSaveFilePicker({
+      id: 'dispobook_archive',
+      suggestedName: `archive_${new Date().getFullYear()}.json`,
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    });
+
+    const archiveData = {
+      version: Date.now(),
+      archivedAt: new Date().toISOString(),
+      tours: toArchive
+    };
+
+    const w = await archiveHandle.createWritable();
+    await w.write(JSON.stringify(archiveData, null, 2));
+    await w.close();
+
+    // Remove from main DB
+    db.toursArray = db.toursArray.filter(t => !(t.status === 'done' && t.dateKey < cutoff));
+
+    closeModal('archiveModal');
+    scheduleSave();
+    render();
+    toast(`${toArchive.length} Touren erfolgreich archiviert.`, 'success');
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      toast('Fehler beim Archivieren: ' + e.message, 'error');
+    }
+  }
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -1270,14 +1343,14 @@ function ctxCopy() {
   if (!_ctxTourId) return;
   const found = findTour(_ctxTourId);
   if (!found) return;
-  const { tour, dateKey } = found;
+  const { tour, dateKey, status } = found;
   // Deep copy to ensure everything is duplicated (make it actually work)
   const copy = JSON.parse(JSON.stringify(tour));
   copy.id = uid();
   copy.name = copy.name + ' (Kopie)';
   copy.created = Date.now();
   copy.updated = Date.now();
-  db.tours[currentNL][dateKey].pending.push(copy);
+  db.toursArray.push(copy);
   scheduleSave(); render();
   toast(`„${copy.name}" kopiert`, 'success');
 }
