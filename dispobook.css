@@ -2925,3 +2925,35 @@ main {
    color: var(--text-4);
    margin-top: 1px;
 }
+
+/* ═══════════════════════════════════════════════════════
+   FORMULAR BEREICHE (SECTIONS)
+═══════════════════════════════════════════════════════ */
+.form-section {
+   background: var(--surface);
+   border: 1px solid var(--border-xs);
+   border-radius: var(--r-md);
+   padding: 18px;
+   margin-bottom: 16px;
+   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.form-section-title {
+   font-size: 0.9rem;
+   font-weight: 600;
+   color: var(--text-1);
+   margin-bottom: 16px;
+   padding-bottom: 6px;
+   border-bottom: 2px solid var(--border-xs);
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   letter-spacing: 0.02em;
+}
+
+.form-section-title svg {
+   color: var(--primary);
+   width: 16px;
+   height: 16px;
+   stroke-width: 2.2px;
+}

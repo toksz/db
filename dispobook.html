@@ -378,179 +378,236 @@
           <iframe id="pdfIframeKI" src=""
             style="width:100%; height:100%; border:none; border-radius:var(--r-md); background:var(--surface);"></iframe>
         </div>
-        <div class="modal-form-side" id="tourDetailFormSide">
+        <div class="modal-form-side" id="tourDetailFormSide" style="padding:4px">
 
-          <!-- Row 1: Name + Date + Status -->
-          <div class="detail-row" style="display:flex;gap:10px;flex-wrap:wrap">
-            <div class="detail-field" style="flex:2;min-width:180px">
-              <label class="modal-label" for="detailName">Bezeichnung<span class="required-star"
-                  aria-hidden="true">*</span></label>
-              <input class="modal-input" type="text" id="detailName" placeholder="z.B. Hamburg, Kundenbesuch…" required>
-              <div style="margin-top:5px">
-                <label class="modal-label" style="font-size:0.68rem;color:var(--text-4);margin:0">Transport-ID</label>
-                <input class="modal-input" type="text" id="detailTransportnummer" placeholder="TR-…"
-                  style="padding:5px 10px;font-size:0.78rem;background:var(--surface-3);border-color:var(--border-xs)">
+          <!-- SECTION: Allgemein -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              Allgemeine Daten
+            </div>
+
+            <div class="detail-row" style="display:flex;gap:12px;flex-wrap:wrap">
+              <div class="detail-field" style="flex:2;min-width:180px">
+                <label class="modal-label" for="detailName">Bezeichnung<span class="required-star"
+                    aria-hidden="true">*</span></label>
+                <input class="modal-input" type="text" id="detailName" placeholder="z.B. Hamburg, Kundenbesuch…"
+                  required>
+                <div
+                  style="margin-top:6px; background:var(--surface-2); padding:6px; border-radius:var(--r-sm); border:1px solid var(--border-sm); display:flex; align-items:center; gap:8px">
+                  <span
+                    style="font-size:0.7rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.02em">TR-ID</span>
+                  <input class="modal-input" type="text" id="detailTransportnummer" placeholder="Optional…"
+                    style="margin:0; padding:4px 8px; font-size:0.78rem; border:none; background:transparent">
+                </div>
+              </div>
+
+              <div style="flex:1; min-width:140px; display:flex; flex-direction:column; gap:12px">
+                <div class="detail-field" id="detailDateWrap">
+                  <label class="modal-label">Tag / Datum</label>
+                  <input class="modal-input" type="date" id="detailDate">
+                </div>
+                <div class="detail-field">
+                  <label class="modal-label">Status</label>
+                  <select class="modal-input modal-select" id="detailStatus" style="font-weight:600">
+                    <option value="pending">Ausstehend</option>
+                    <option value="done">Disponiert</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div class="detail-field detail-field-narrow" id="detailDateWrap" style="flex:1;min-width:130px">
-              <label class="modal-label">Tag / Datum</label>
-              <input class="modal-input" type="date" id="detailDate">
-            </div>
-            <div class="detail-field detail-field-narrow">
-              <label class="modal-label">Status</label>
-              <select class="modal-input modal-select" id="detailStatus">
-                <option value="pending">Ausstehend</option>
-                <option value="done">Disponiert</option>
-              </select>
-            </div>
-          </div>
 
-          <!-- Color Picker & Tourtyp -->
-          <div class="detail-row detail-row-2" style="margin-bottom:18px">
-            <div class="detail-field">
-              <label class="modal-label">Kategorie / Farbe</label>
-              <div id="detailColorPicker" class="color-picker-row"></div>
-            </div>
-            <div class="detail-field">
-              <label class="modal-label">Tourtyp</label>
-              <select class="modal-input modal-select" id="detailTourtyp">
-                <option value="">Auswählen…</option>
-                <option value="Direktfahrt">Direktfahrt</option>
-                <option value="Sammeltour">Sammeltour</option>
-                <option value="Rückladung">Rückladung</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Row: Startort + Absender + Empfänger -->
-          <div class="detail-row detail-row-3">
-            <div class="detail-field">
-              <label class="modal-label">Startort / Abfahrtsadr.</label>
-              <div class="addr-ac-wrap">
-                <input class="modal-input addr-autocomplete" type="text" id="detailStartort" placeholder="Firma, Ort…"
-                  list="dl-adressen" autocomplete="off">
-                <div class="addr-ac-dropdown" id="ac-detailStartort"></div>
+            <div class="detail-row detail-row-2" style="margin-bottom:0; margin-top:12px">
+              <div class="detail-field">
+                <label class="modal-label">Kategorie / Farbe</label>
+                <div id="detailColorPicker" class="color-picker-row"></div>
               </div>
-            </div>
-            <div class="detail-field">
-              <label class="modal-label">Absender</label>
-              <div class="addr-ac-wrap">
-                <input class="modal-input addr-autocomplete" type="text" id="detailAbsender" placeholder="Firma, Ort…"
-                  list="dl-adressen" autocomplete="off">
-                <div class="addr-ac-dropdown" id="ac-detailAbsender"></div>
-              </div>
-            </div>
-            <div class="detail-field">
-              <label class="modal-label">Empfänger</label>
-              <div class="addr-ac-wrap">
-                <input class="modal-input addr-autocomplete" type="text" id="detailEmpfaenger" placeholder="Firma, Ort…"
-                  list="dl-adressen" autocomplete="off">
-                <div class="addr-ac-dropdown" id="ac-detailEmpfaenger"></div>
+              <div class="detail-field">
+                <label class="modal-label">Tourtyp</label>
+                <select class="modal-input modal-select" id="detailTourtyp">
+                  <option value="">Auswählen…</option>
+                  <option value="Direktfahrt">Direktfahrt</option>
+                  <option value="Sammeltour">Sammeltour</option>
+                  <option value="Rückladung">Rückladung</option>
+                </select>
               </div>
             </div>
           </div>
 
-          <!-- Empfänger Extras -->
-          <div class="detail-row detail-row-3">
-            <div class="detail-field">
-              <label class="modal-label">Empf. Ansprechp. & Tel</label>
-              <input class="modal-input" type="text" id="detailEmpfAnsprechpartner" placeholder="Name, Telefon…">
+          <!-- SECTION: Adressen -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              Route & Adressen
             </div>
-            <div class="detail-field">
-              <label class="modal-label">Empf. Rampe / Tor</label>
-              <input class="modal-input" type="text" id="detailEmpfRampe" placeholder="z.B. Tor 4">
-            </div>
-            <div class="detail-field">
-              <label class="modal-label">Empf. Zeitfenster</label>
-              <input class="modal-input" type="text" id="detailEmpfZeitfenster" placeholder="z.B. 08:00–12:00">
-            </div>
-          </div>
 
-          <!-- Row 3: Fahrer + Fahrzeug + Frachtführer -->
-          <div class="detail-row detail-row-3">
-            <div class="detail-field">
-              <label class="modal-label">Fahrer</label>
-              <input class="modal-input" type="text" id="detailFahrer" placeholder="Vor- und Nachname" list="dl-fahrer">
+            <!-- Row: Startort + Absender + Empfänger -->
+            <div class="detail-row detail-row-3">
+              <div class="detail-field">
+                <label class="modal-label">Startort / Abfahrtsadr.</label>
+                <div class="addr-ac-wrap">
+                  <input class="modal-input addr-autocomplete" type="text" id="detailStartort" placeholder="Firma, Ort…"
+                    list="dl-adressen" autocomplete="off">
+                  <div class="addr-ac-dropdown" id="ac-detailStartort"></div>
+                </div>
+              </div>
+              <div class="detail-field">
+                <label class="modal-label">Absender</label>
+                <div class="addr-ac-wrap">
+                  <input class="modal-input addr-autocomplete" type="text" id="detailAbsender" placeholder="Firma, Ort…"
+                    list="dl-adressen" autocomplete="off">
+                  <div class="addr-ac-dropdown" id="ac-detailAbsender"></div>
+                </div>
+              </div>
+              <div class="detail-field">
+                <label class="modal-label">Empfänger</label>
+                <div class="addr-ac-wrap">
+                  <input class="modal-input addr-autocomplete" type="text" id="detailEmpfaenger"
+                    placeholder="Firma, Ort…" list="dl-adressen" autocomplete="off">
+                  <div class="addr-ac-dropdown" id="ac-detailEmpfaenger"></div>
+                </div>
+              </div>
             </div>
-            <div class="detail-field">
-              <label class="modal-label">Fahrzeug / Kennzeichen</label>
-              <input class="modal-input" type="text" id="detailFahrzeug" placeholder="z.B. GI-ST 123"
-                list="dl-fahrzeug">
-            </div>
-            <div class="detail-field">
-              <label class="modal-label">Frachtführer (extern)</label>
-              <input class="modal-input" type="text" id="detailFrachtfuehrer" placeholder="Subunternehmer…"
-                list="dl-frachtfuehrer">
-            </div>
-          </div>
 
-          <!-- Gewicht & Maße -->
-          <div class="detail-field" style="margin-bottom:15px; border-top:1px solid var(--border-sm); padding-top:15px">
-            <label class="modal-label" style="margin-bottom:10px">Gewicht & Maße</label>
+            <!-- Empfänger Extras -->
             <div class="detail-row detail-row-3" style="margin-bottom:0">
               <div class="detail-field">
-                <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Gesamtgewicht (kg)</label>
-                <input class="modal-input" type="number" id="detailGewicht" placeholder="0" min="0" step="1">
+                <label class="modal-label">Empf. Ansprechp. & Tel</label>
+                <input class="modal-input" type="text" id="detailEmpfAnsprechpartner" placeholder="Name, Telefon…">
               </div>
               <div class="detail-field">
-                <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Lademeter (LDM)</label>
-                <input class="modal-input" type="number" id="detailLademeter" placeholder="0.00" min="0" step="0.01">
+                <label class="modal-label">Empf. Rampe / Tor</label>
+                <input class="modal-input" type="text" id="detailEmpfRampe" placeholder="z.B. Tor 4">
               </div>
               <div class="detail-field">
-                <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Maße L × B × H (cm)</label>
-                <div style="display:flex;gap:4px">
-                  <input class="modal-input" type="number" id="detailMassL" placeholder="L" min="0"
-                    style="flex:1;text-align:center">
-                  <span style="color:var(--text-4);align-self:center;font-size:0.75rem">×</span>
-                  <input class="modal-input" type="number" id="detailMassB" placeholder="B" min="0"
-                    style="flex:1;text-align:center">
-                  <span style="color:var(--text-4);align-self:center;font-size:0.75rem">×</span>
-                  <input class="modal-input" type="number" id="detailMassH" placeholder="H" min="0"
-                    style="flex:1;text-align:center">
+                <label class="modal-label">Empf. Zeitfenster</label>
+                <input class="modal-input" type="text" id="detailEmpfZeitfenster" placeholder="z.B. 08:00–12:00">
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION: Transport details -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="1" y="3" width="15" height="13" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+              Transport & Ladung
+            </div>
+
+            <!-- Fahrer / Fzg -->
+            <div class="detail-row detail-row-3">
+              <div class="detail-field">
+                <label class="modal-label">Fahrer</label>
+                <input class="modal-input" type="text" id="detailFahrer" placeholder="Vor- und Nachname"
+                  list="dl-fahrer">
+              </div>
+              <div class="detail-field">
+                <label class="modal-label">Fahrzeug / Kennzeichen</label>
+                <input class="modal-input" type="text" id="detailFahrzeug" placeholder="z.B. GI-ST 123"
+                  list="dl-fahrzeug">
+              </div>
+              <div class="detail-field">
+                <label class="modal-label">Frachtführer (extern)</label>
+                <input class="modal-input" type="text" id="detailFrachtfuehrer" placeholder="Subunternehmer…"
+                  list="dl-frachtfuehrer">
+              </div>
+            </div>
+
+            <!-- Gewicht & Maße -->
+            <div class="detail-field"
+              style="margin-bottom:15px; border-top:1px solid var(--border-sm); padding-top:15px">
+              <label class="modal-label" style="margin-bottom:10px; font-weight:600; color:var(--text-2)">Gewicht &
+                Maße</label>
+              <div class="detail-row detail-row-3" style="margin-bottom:0">
+                <div class="detail-field">
+                  <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Gesamtgewicht (kg)</label>
+                  <input class="modal-input" type="number" id="detailGewicht" placeholder="0" min="0" step="1">
+                </div>
+                <div class="detail-field">
+                  <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Lademeter (LDM)</label>
+                  <input class="modal-input" type="number" id="detailLademeter" placeholder="0.00" min="0" step="0.01">
+                </div>
+                <div class="detail-field">
+                  <label class="modal-label" style="font-size:0.7rem;color:var(--text-4)">Maße L × B × H (cm)</label>
+                  <div style="display:flex;gap:4px">
+                    <input class="modal-input" type="number" id="detailMassL" placeholder="L" min="0"
+                      style="flex:1;text-align:center">
+                    <span style="color:var(--text-4);align-self:center;font-size:0.75rem">×</span>
+                    <input class="modal-input" type="number" id="detailMassB" placeholder="B" min="0"
+                      style="flex:1;text-align:center">
+                    <span style="color:var(--text-4);align-self:center;font-size:0.75rem">×</span>
+                    <input class="modal-input" type="number" id="detailMassH" placeholder="H" min="0"
+                      style="flex:1;text-align:center">
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Row 4: Referenz + KL -->
-          <div class="detail-row detail-row-2">
-            <div class="detail-field">
-              <label class="modal-label">Kundenreferenz / Auftragsnr.</label>
-              <input class="modal-input" type="text" id="detailReferenznummer" placeholder="Auftrag…">
+          <!-- SECTION: Konditionen  -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              Auftragsdetails & Termine
             </div>
-            <div class="detail-field">
-              <label class="modal-label">Kommissionierliste</label>
-              <input class="modal-input" type="text" id="detailKommissionierliste" placeholder="KL-2026-…">
+
+            <!-- Row 4: Referenz + KL -->
+            <div class="detail-row detail-row-2">
+              <div class="detail-field">
+                <label class="modal-label">Kundenreferenz / Auftragsnr.</label>
+                <input class="modal-input" type="text" id="detailReferenznummer" placeholder="Auftrag…">
+              </div>
+              <div class="detail-field">
+                <label class="modal-label">Kommissionierliste</label>
+                <input class="modal-input" type="text" id="detailKommissionierliste" placeholder="KL-2026-…">
+              </div>
+            </div>
+
+            <!-- Row 5: Termin + Verladen + Frachtpreis -->
+            <div class="detail-row detail-row-3">
+              <div class="detail-field">
+                <label class="modal-label">Liefertermin ⚑</label>
+                <input class="modal-input" type="datetime-local" id="detailLiefertermin">
+              </div>
+              <div class="detail-field">
+                <label class="modal-label">Verladen am</label>
+                <input class="modal-input" type="datetime-local" id="detailVerladen">
+              </div>
+              <div class="detail-field">
+                <label class="modal-label">Frachtpreis (€)</label>
+                <input class="modal-input" type="number" id="detailFrachtpreis" placeholder="0.00" min="0" step="0.01">
+              </div>
+            </div>
+
+            <!-- Besonderheiten -->
+            <div class="detail-field" style="margin-bottom:0">
+              <label class="modal-label">Besonderheiten</label>
+              <textarea class="modal-input modal-textarea" id="detailBesonderheiten"
+                placeholder="Hinweise, Sonderanforderungen, Temperatur…" rows="2" style="margin-bottom:0"></textarea>
             </div>
           </div>
 
-          <!-- Row 5: Termin + Verladen + Frachtpreis -->
-          <div class="detail-row detail-row-3">
-            <div class="detail-field">
-              <label class="modal-label">Liefertermin ⚑</label>
-              <input class="modal-input" type="datetime-local" id="detailLiefertermin">
-            </div>
-            <div class="detail-field">
-              <label class="modal-label">Verladen am</label>
-              <input class="modal-input" type="datetime-local" id="detailVerladen">
-            </div>
-            <div class="detail-field">
-              <label class="modal-label">Frachtpreis (€)</label>
-              <input class="modal-input" type="number" id="detailFrachtpreis" placeholder="0.00" min="0" step="0.01">
-            </div>
-          </div>
-
-          <!-- Besonderheiten -->
-          <div class="detail-field">
-            <label class="modal-label">Besonderheiten</label>
-            <textarea class="modal-input modal-textarea" id="detailBesonderheiten"
-              placeholder="Hinweise, Sonderanforderungen, Temperatur…" rows="2"></textarea>
-          </div>
-
-          <!-- Anhänge DMS -->
-          <div class="detail-field" style="margin-top:15px; border-top:1px solid var(--border-sm); padding-top:15px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <label class="modal-label" style="margin:0">Anhänge / Dokumente (OneDrive Links)</label>
+          <!-- SECTION: Anhänge -->
+          <div class="form-section" style="margin-bottom:0">
+            <div class="form-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+              Anhänge & Dokumente (OneDrive Links)
             </div>
             <div style="display:flex;gap:8px;margin-bottom:10px">
               <input type="text" class="modal-input" id="newAttachmentUrl" placeholder="Link einfügen…"
@@ -793,19 +850,6 @@
       <div class="ctx-tour-name" id="ctxTourName">—</div>
       <div class="ctx-tour-date" id="ctxTourDate"></div>
     </div>
-    <button class="ctx-item" onclick="ctxRename()" role="menuitem">
-      <span class="ctx-item-icon">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-      </span>
-      <span class="ctx-item-text">
-        Umbenennen
-        <span class="ctx-item-sub">Namen der Tour ändern</span>
-      </span>
-    </button>
     <button class="ctx-item" onclick="ctxEdit()" role="menuitem">
       <span class="ctx-item-icon">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -834,8 +878,51 @@
         <span class="ctx-item-sub">Tour duplizieren</span>
       </span>
     </button>
-    <div class="ctx-sep"></div>
-    <button class="ctx-item" role="menuitem" style="position:relative">
+    <div class="ctx-sep" id="ctxSepSenden"></div>
+    <div class="ctx-item" role="menuitem" style="position:relative; cursor:default">
+      <span class="ctx-item-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <path d="M22 2L11 13" />
+          <polygon points="22 2 15 22 11 13 2 9 22 2" />
+        </svg>
+      </span>
+      <span class="ctx-item-text">
+        Senden via
+        <span class="ctx-item-sub">Tour-Details teilen</span>
+      </span>
+      <span class="ctx-item-arrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </span>
+      <!-- Sub-menu -->
+      <div class="ctx-submenu">
+        <button class="ctx-item" onclick="ctxSendMail()">
+          <span class="ctx-item-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+          </span>
+          <span class="ctx-item-text">E-Mail</span>
+        </button>
+        <button class="ctx-item" onclick="ctxSendWhatsApp()">
+          <span class="ctx-item-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round">
+              <path
+                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+          </span>
+          <span class="ctx-item-text">WhatsApp</span>
+        </button>
+      </div>
+    </div>
+    <div class="ctx-sep" id="ctxSepAdvanced1"></div>
+    <div class="ctx-item" id="ctxMoveItem" role="menuitem" style="position:relative; cursor:default">
       <span class="ctx-item-icon">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round">
@@ -847,19 +934,15 @@
       </span>
       <span class="ctx-item-text">
         Verschieben nach
-        <span class="ctx-item-sub">Anderen Tag wählen</span>
+        <span class="ctx-item-sub">
+          <input type="date" id="ctxMoveDate"
+            style="width:100%; margin-top:4px; font-size: 0.75rem; padding: 2px 4px; border: 1px solid var(--border-sm); border-radius: 4px; background: var(--surface-2); color: var(--text-1);"
+            onchange="ctxMoveToDate(this.value)">
+        </span>
       </span>
-      <span class="ctx-item-arrow">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </span>
-      <!-- Sub-menu populated by JS -->
-      <div class="ctx-submenu" id="ctxMoveSubmenu"></div>
-    </button>
-    <div class="ctx-sep"></div>
-    <button class="ctx-item danger" onclick="ctxDelete()" role="menuitem">
+    </div>
+    <div class="ctx-sep" id="ctxSepAdvanced2"></div>
+    <button class="ctx-item danger" id="ctxDeleteItem" onclick="ctxDelete()" role="menuitem">
       <span class="ctx-item-icon">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round">
@@ -910,6 +993,25 @@
           <span class="add-prompt-btn-label">Vollständig</span>
           <span class="add-prompt-btn-sub">Fahrer, Fahrzeug, Termin &amp; mehr jetzt eingeben</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GEMINI KEY MODAL -->
+  <div class="modal-backdrop" id="geminiModal-backdrop" onclick="closeModal('geminiModal')"></div>
+  <div class="modal" id="geminiModal">
+    <div class="modal-content" style="max-width:380px">
+      <button class="modal-close" onclick="closeModal('geminiModal')" aria-label="Schließen"><svg width="14" height="14"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg></button>
+      <div class="modal-title">Gemini API-Schlüssel</div>
+      <label class="modal-label" for="geminiKeyInput">API-Schlüssel</label>
+      <input class="modal-input" type="password" id="geminiKeyInput" placeholder="AIzaSy...">
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="modal-btn-primary" onclick="saveGeminiApiKey()">Speichern</button>
+        <button class="modal-btn-ghost" onclick="closeModal('geminiModal')">Abbrechen</button>
       </div>
     </div>
   </div>

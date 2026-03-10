@@ -231,7 +231,21 @@ async function saveFile() {
   db.version = Date.now(); setSyncStatus('saving');
   try {
     const w = await fileHandle.createWritable();
-    await w.write(JSON.stringify(db, null, 2)); await w.close();
+
+    // OPTIMIZE JSON: recursive cleanup to remove empty days
+    const cleanData = JSON.parse(JSON.stringify(db));
+    if (cleanData.tours) {
+      for (const nl in cleanData.tours) {
+        for (const date in cleanData.tours[nl]) {
+          const day = cleanData.tours[nl][date];
+          if ((!day.pending || day.pending.length === 0) && (!day.done || day.done.length === 0)) {
+            delete cleanData.tours[nl][date];
+          }
+        }
+      }
+    }
+
+    await w.write(JSON.stringify(cleanData, null, 2)); await w.close();
     lastSavedVersion = db.version; setSyncStatus('saved');
   } catch { setSyncStatus('error'); toast('Fehler beim Speichern!', 'error'); }
 }
@@ -624,16 +638,25 @@ function setupCardEvents() {
     btn.addEventListener('click', e => { e.stopPropagation(); openConfirmDelete(btn.dataset.id); }));
   document.querySelectorAll('.tour-btn.detail').forEach(btn =>
     btn.addEventListener('click', e => { e.stopPropagation(); openTourDetail(btn.dataset.id); }));
-  // Right-click context menu
+  // Right-click context menu (full options)
   document.querySelectorAll('.tour-card').forEach(card =>
     card.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      openCtxMenu(card.dataset.id, e.clientX, e.clientY);
+      openCtxMenu(card.dataset.id, e.clientX, e.clientY, true);
+    }));
+  // Left-click context menu (basic options only)
+  document.querySelectorAll('.tour-card').forEach(card =>
+    card.addEventListener('click', e => {
+      if (!e.target.closest('.tour-btns') && !e.target.closest('.tour-drag-handle')) {
+        e.preventDefault();
+        e.stopPropagation();
+        openCtxMenu(card.dataset.id, e.clientX, e.clientY, false);
+      }
     }));
   document.querySelectorAll('.tour-card').forEach(card =>
     card.addEventListener('dblclick', e => {
-      if (!e.target.closest('.tour-btns') && !e.target.closest('.tour-drag-handle'))
+      if (!e.target.closest('.tour-btns') && !e.target.closest('.tour-drag-handle') && !e.target.closest('.ctx-item'))
         openTourDetail(card.dataset.id);
     }));
 }
@@ -857,9 +880,12 @@ function openTourDetail(id) {
   document.getElementById('detailStatus').value = status;
   renderColorPicker(tour.farbe || '');
 
-  // Render dynamic lists
-  currentPositions = JSON.parse(JSON.stringify(tour.positionen || []));
-  renderPositions();
+  // Render measurements
+  document.getElementById('detailGewicht').value = tour.gewicht || '';
+  document.getElementById('detailLademeter').value = tour.lademeter || '';
+  document.getElementById('detailMassL').value = tour.massL || '';
+  document.getElementById('detailMassB').value = tour.massB || '';
+  document.getElementById('detailMassH').value = tour.massH || '';
 
   currentAttachments = JSON.parse(JSON.stringify(tour.attachments || []));
   renderAttachments();
@@ -915,18 +941,21 @@ function saveTourDetail() {
   tourObj.empf_zeitfenster = document.getElementById('detailEmpfZeitfenster').value.trim() || null;
   tourObj.referenznummer = document.getElementById('detailReferenznummer').value.trim() || null;
 
-  // Process Positions
-  syncPositionsFromDOM();
-  tourObj.positionen = currentPositions;
-  let totalW = 0, totalLdm = 0;
-  for (const pos of currentPositions) {
-    if (pos.kg) totalW += pos.kg;
-    if (pos.ldm) totalLdm += pos.ldm;
-  }
-  tourObj.gewicht = totalW > 0 ? totalW : null;
-  tourObj.lademeter = totalLdm > 0 ? parseFloat(totalLdm.toFixed(2)) : null;
+  // Process Weights & Measurements
+  const gewicht = parseInt(document.getElementById('detailGewicht').value);
+  const lademeter = parseFloat(document.getElementById('detailLademeter').value);
+  const massL = parseInt(document.getElementById('detailMassL').value);
+  const massB = parseInt(document.getElementById('detailMassB').value);
+  const massH = parseInt(document.getElementById('detailMassH').value);
 
-  // Attachments
+  tourObj.gewicht = !isNaN(gewicht) ? gewicht : null;
+  tourObj.lademeter = !isNaN(lademeter) ? lademeter : null;
+  tourObj.massL = !isNaN(massL) ? massL : null;
+  tourObj.massB = !isNaN(massB) ? massB : null;
+  tourObj.massH = !isNaN(massH) ? massH : null;
+
+  // Cleanup old position array if exists
+  delete tourObj.positionen;  // Attachments
   tourObj.attachments = currentAttachments;
 
   // Manual frachtpreis & dates
@@ -976,77 +1005,6 @@ function deleteTourFromDetail() {
   closeModal('tourDetailModal');
   openConfirmDelete(editingTourId);
   editingTourId = null;
-}
-
-// ─── Sendungspositionen ────────────────────────────────────────────────────────
-let currentPositions = [];
-
-function renderPositions() {
-  const c = document.getElementById('positionsContainer');
-  if (!c) return;
-  c.innerHTML = currentPositions.map((pos, idx) => `
-    <div class="position-row" style="display:flex;gap:4px;align-items:center;background:var(--surface-3);padding:6px;border-radius:var(--r-sm)">
-      <input type="number" class="modal-input pos-anzahl" value="${pos.anzahl || ''}" placeholder="Anz" min="1" style="width:50px;margin:0;padding:4px" onchange="calcPositions()">
-      <input type="text" class="modal-input pos-bez" value="${escHtml(pos.bez || '')}" placeholder="Artikel…" style="flex:1;margin:0;padding:4px" onchange="calcPositions()">
-      <input type="number" class="modal-input pos-kg" value="${pos.kg || ''}" placeholder="kg" min="0" step="0.1" style="width:60px;margin:0;padding:4px" onchange="calcPositions()">
-      <input type="number" class="modal-input pos-l" value="${pos.l || ''}" placeholder="L" min="0" style="width:45px;margin:0;padding:4px" onchange="calcPositions()">
-      <span style="color:var(--text-4)">×</span>
-      <input type="number" class="modal-input pos-b" value="${pos.b || ''}" placeholder="B" min="0" style="width:45px;margin:0;padding:4px" onchange="calcPositions()">
-      <span style="color:var(--text-4)">×</span>
-      <input type="number" class="modal-input pos-h" value="${pos.h || ''}" placeholder="H" min="0" style="width:45px;margin:0;padding:4px" onchange="calcPositions()">
-      <div style="font-size:0.75rem;color:var(--text-3);width:50px;text-align:right" class="pos-ldm-res">${pos.ldm ? pos.ldm.toFixed(2) : '0.00'} LDM</div>
-      <button class="modal-btn-ghost" type="button" onclick="removePositionRow(${idx})" style="padding:4px;margin-left:4px" title="Löschen">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-  `).join('');
-  calcPositions();
-}
-
-function addPositionRow() {
-  syncPositionsFromDOM();
-  currentPositions.push({ anzahl: 1, bez: '', kg: null, l: null, b: null, h: null, ldm: 0 });
-  renderPositions();
-}
-
-function removePositionRow(idx) {
-  syncPositionsFromDOM();
-  currentPositions.splice(idx, 1);
-  renderPositions();
-}
-
-function syncPositionsFromDOM() {
-  const container = document.getElementById('positionsContainer');
-  if (!container) return;
-  const rows = container.querySelectorAll('.position-row');
-  currentPositions = Array.from(rows).map(row => {
-    const pAnz = parseInt(row.querySelector('.pos-anzahl').value) || 1;
-    const pBez = row.querySelector('.pos-bez').value.trim();
-    const pKg = parseFloat(row.querySelector('.pos-kg').value) || null;
-    const pL = parseFloat(row.querySelector('.pos-l').value) || null;
-    const pB = parseFloat(row.querySelector('.pos-b').value) || null;
-    const pH = parseFloat(row.querySelector('.pos-h').value) || null;
-    // LDM berechnen: L x B / (2.4 * 10^6) * Anzahl 
-    let ldm = 0;
-    if (pL && pB) ldm = (pL * pB * pAnz) / 2400000;
-    return { anzahl: pAnz, bez: pBez, kg: pKg, l: pL, b: pB, h: pH, ldm };
-  });
-}
-
-function calcPositions() {
-  syncPositionsFromDOM();
-  let totalKg = 0;
-  let totalLdm = 0;
-  const rows = document.getElementById('positionsContainer').querySelectorAll('.position-row');
-  currentPositions.forEach((pos, i) => {
-    totalKg += pos.kg || 0;
-    totalLdm += pos.ldm || 0;
-    if (rows[i]) rows[i].querySelector('.pos-ldm-res').textContent = pos.ldm ? pos.ldm.toFixed(2) + ' LDM' : '0.00 LDM';
-  });
-  const elW = document.getElementById('calcTotalWeight');
-  const elLdm = document.getElementById('calcTotalLdm');
-  if (elW) elW.textContent = totalKg > 0 ? totalKg.toFixed(1).replace('.0', '') : '0';
-  if (elLdm) elLdm.textContent = totalLdm > 0 ? totalLdm.toFixed(2) : '0.00';
 }
 
 // ─── Attachments (DMS) ────────────────────────────────────────────────────────
@@ -1264,7 +1222,7 @@ function toast(msg, type = '') {
 // ─── Context Menu ────────────────────────────────────────────────────────────
 let _ctxTourId = null;
 
-function openCtxMenu(id, x, y) {
+function openCtxMenu(id, x, y, isRightClick = true) {
   const found = findTour(id);
   if (!found) return;
   _ctxTourId = id;
@@ -1272,29 +1230,29 @@ function openCtxMenu(id, x, y) {
   // Header
   document.getElementById('ctxTourName').textContent = tour.name;
   document.getElementById('ctxTourDate').textContent = fmtShort(dateKey) + ' ' + (DAY_NAMES[(parseDate(dateKey).getDay() + 6) % 7] || '');
-  // Build move-to submenu
-  const sub = document.getElementById('ctxMoveSubmenu');
-  const today = fmt(new Date());
-  let subHtml = '';
-  for (let i = 0; i < 7; i++) {
-    const d = addDays(currentWeekStart, i);
-    const key = fmt(d);
-    if (key === dateKey) continue;
-    const label = DAY_NAMES[i] + ' ' + fmtShort(key);
-    subHtml += `<button class="ctx-item" onclick="ctxMoveTo('${key}')">
-      <span class="ctx-item-icon">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      </span>
-      <span class="ctx-item-text">${escHtml(label)}</span>
-    </button>`;
+  // Pre-fill date picker
+  const datePicker = document.getElementById('ctxMoveDate');
+  if (datePicker) {
+    datePicker.value = dateKey;
   }
-  if (sub) sub.innerHTML = subHtml || '<div style="padding:8px 12px;font-size:.78rem;color:var(--text-4)">Nur diese Woche</div>';
+  // Right-click vs Left-click UI toggle
+  const displayVal = isRightClick ? 'flex' : 'none';
+  const blockDisplayVal = isRightClick ? 'block' : 'none';
+  const moveItem = document.getElementById('ctxMoveItem');
+  const deleteItem = document.getElementById('ctxDeleteItem');
+  const sepAdvanced1 = document.getElementById('ctxSepAdvanced1');
+  const sepAdvanced2 = document.getElementById('ctxSepAdvanced2');
+  if (moveItem) moveItem.style.display = displayVal;
+  if (deleteItem) deleteItem.style.display = displayVal;
+  if (sepAdvanced1) sepAdvanced1.style.display = blockDisplayVal;
+  if (sepAdvanced2) sepAdvanced2.style.display = blockDisplayVal;
+
   // Position
   const menu = document.getElementById('ctxMenu');
   menu.classList.add('open');
   // Clamp to viewport
   const mw = menu.offsetWidth || 220;
-  const mh = menu.offsetHeight || 260;
+  const mh = menu.offsetHeight || Math.max(260, menu.scrollHeight);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   menu.style.left = Math.min(x, vw - mw - 8) + 'px';
@@ -1304,17 +1262,6 @@ function closeCtxMenu() {
   document.getElementById('ctxMenu')?.classList.remove('open');
   _ctxTourId = null;
 }
-function ctxRename() {
-  closeCtxMenu();
-  if (!_ctxTourId) return;
-  const found = findTour(_ctxTourId);
-  if (!found) return;
-  _renamingTourId = _ctxTourId;
-  const inp = document.getElementById('renameInput');
-  if (inp) { inp.value = found.tour.name; }
-  openModal('renameModal');
-  setTimeout(() => document.getElementById('renameInput')?.select(), 80);
-}
 function ctxEdit() { const id = _ctxTourId; closeCtxMenu(); openTourDetail(id); }
 function ctxDelete() { const id = _ctxTourId; closeCtxMenu(); openConfirmDelete(id); }
 function ctxCopy() {
@@ -1323,33 +1270,55 @@ function ctxCopy() {
   const found = findTour(_ctxTourId);
   if (!found) return;
   const { tour, dateKey } = found;
-  const copy = { ...tour, id: uid(), name: tour.name + ' (Kopie)', created: Date.now(), updated: Date.now() };
+  // Deep copy to ensure everything is duplicated (make it actually work)
+  const copy = JSON.parse(JSON.stringify(tour));
+  copy.id = uid();
+  copy.name = copy.name + ' (Kopie)';
+  copy.created = Date.now();
+  copy.updated = Date.now();
   db.tours[currentNL][dateKey].pending.push(copy);
   scheduleSave(); render();
   toast(`„${copy.name}" kopiert`, 'success');
 }
-function ctxMoveTo(targetDate) {
+function ctxMoveToDate(targetDate) {
   closeCtxMenu();
-  if (!_ctxTourId) return;
+  if (!_ctxTourId || !targetDate) return;
   moveTour(_ctxTourId, targetDate, 'pending');
   toast('Tour verschoben', 'success');
 }
 
-// ─── Rename Modal ─────────────────────────────────────────────────────────────
-let _renamingTourId = null;
-function confirmRename() {
-  const inp = document.getElementById('renameInput');
-  const name = inp?.value.trim();
-  if (!name) { inp?.classList.add('shake'); setTimeout(() => inp?.classList.remove('shake'), 400); return; }
-  if (!_renamingTourId) return;
-  const found = findTour(_renamingTourId);
-  if (!found) { closeModal('renameModal'); return; }
-  found.tour.name = name;
-  found.tour.updated = Date.now();
-  _renamingTourId = null;
-  closeModal('renameModal');
-  scheduleSave(); render();
-  toast('Tour umbenannt', 'success');
+// ─── Sharing ──────────────────────────────────────────────────────────────────
+function buildShareText(tour) {
+  let lines = [];
+  lines.push(`Tour: ${tour.name}`);
+  if (tour.startort) lines.push(`Startort: ${tour.startort}`);
+  if (tour.fahrer) lines.push(`Fahrer: ${tour.fahrer}`);
+  if (tour.fahrzeug) lines.push(`Fahrzeug: ${tour.fahrzeug}`);
+  if (tour.empfaenger) lines.push(`Empfänger: ${tour.empfaenger}`);
+  if (tour.liefertermin) lines.push(`Liefertermin: ${tour.liefertermin.replace('T', ' ')}`);
+  if (tour.besonderheiten) lines.push(`Besonderheiten: ${tour.besonderheiten}`);
+  return lines.join('\n');
+}
+
+function ctxSendMail() {
+  closeCtxMenu();
+  if (!_ctxTourId) return;
+  const found = findTour(_ctxTourId);
+  if (!found) return;
+  const text = buildShareText(found.tour);
+  const subject = encodeURIComponent(`DispoBook Tour: ${found.tour.name}`);
+  const body = encodeURIComponent(text);
+  window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+}
+
+function ctxSendWhatsApp() {
+  closeCtxMenu();
+  if (!_ctxTourId) return;
+  const found = findTour(_ctxTourId);
+  if (!found) return;
+  const text = buildShareText(found.tour);
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
 }
 
 // ─── Stammdaten ───────────────────────────────────────────────────────────────
@@ -1555,11 +1524,18 @@ document.addEventListener('click', e => {
 // ─── Gemini KI Import ─────────────────────────────────────────────────────────
 function promptGeminiApiKey() {
   const current = localStorage.getItem('geminiApiKey') || '';
-  const key = prompt('Bitte Gemini API-Schlüssel (gemini-1.5-flash) eingeben:', current);
-  if (key !== null) {
-    localStorage.setItem('geminiApiKey', key.trim());
-    toast('API-Schlüssel gespeichert', 'success');
-  }
+  const inp = document.getElementById('geminiKeyInput');
+  if (inp) inp.value = current;
+  openModal('geminiModal');
+}
+
+function saveGeminiApiKey() {
+  const inp = document.getElementById('geminiKeyInput');
+  if (!inp) return;
+  const key = inp.value.trim();
+  localStorage.setItem('geminiApiKey', key);
+  closeModal('geminiModal');
+  toast('API-Schlüssel gespeichert', 'success');
 }
 
 async function handlePdfUpload(event) {
@@ -1631,7 +1607,7 @@ async function callGeminiAPI(base64Data) {
 
   const base64Clean = base64Data.split(',')[1];
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1738,17 +1714,110 @@ function applyKiDataToForm(ki) {
     dateInp.value = defaultDate;
   }
 
+  // Map AI sendungspositionen to new simple fields
   if (ki.sendungspositionen && ki.sendungspositionen.length > 0) {
-    currentPositions = ki.sendungspositionen.map(p => ({
-      id: uid(),
-      anzahl: p.anzahl || 1,
-      bez: p.bezeichnung || '',
-      kg: p.gewicht || null,
-      l: p.l || null,
-      b: p.b || null,
-      h: p.h || null,
-      ldm: 0
-    }));
-    renderPositions();
+    let totalGewicht = 0;
+    let maxL = 0, maxB = 0, maxH = 0;
+
+    ki.sendungspositionen.forEach(p => {
+      const anz = p.anzahl || 1;
+      if (p.gewicht) totalGewicht += p.gewicht * (p.gewicht < 100 && anz > 1 ? anz : 1); // rough guess if item weight or total
+
+      if (p.l && p.l > maxL) maxL = p.l;
+      if (p.b && p.b > maxB) maxB = p.b;
+      if (p.h && p.h > maxH) maxH = p.h;
+    });
+
+    if (totalGewicht > 0) document.getElementById('detailGewicht').value = Math.round(totalGewicht);
+    if (ki.lademeter) document.getElementById('detailLademeter').value = ki.lademeter;
+
+    // Convert mm to cm for the UI
+    if (maxL > 0) document.getElementById('detailMassL').value = Math.round(maxL / 10);
+    if (maxB > 0) document.getElementById('detailMassB').value = Math.round(maxB / 10);
+    if (maxH > 0) document.getElementById('detailMassH').value = Math.round(maxH / 10);
   }
 }
+
+// ─── ADDRESS AUTOCOMPLETE (PHOTON) ───────────────────────────────────────────
+let acTimeout = null;
+
+function initAddrAutocomplete() {
+  const inputs = document.querySelectorAll('.addr-autocomplete');
+  inputs.forEach(input => {
+    input.addEventListener('input', (e) => handleAcInput(e.target));
+    input.addEventListener('focus', (e) => {
+      if (e.target.value.length >= 3) handleAcInput(e.target);
+    });
+    // Hide when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.addr-ac-wrap')) {
+        const dd = input.nextElementSibling;
+        if (dd) dd.classList.remove('visible');
+      }
+    });
+  });
+}
+
+async function handleAcInput(input) {
+  const query = input.value.trim();
+  const dropdown = input.nextElementSibling;
+
+  if (query.length < 3) {
+    dropdown.classList.remove('visible');
+    return;
+  }
+
+  clearTimeout(acTimeout);
+  acTimeout = setTimeout(async () => {
+    try {
+      // Photon API - no key needed, fast, highly rated for OpenStreetMap data
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=de`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (!data.features || data.features.length === 0) {
+        dropdown.classList.remove('visible');
+        return;
+      }
+
+      dropdown.innerHTML = data.features.map(f => {
+        const p = f.properties;
+        // Build address string nicely
+        let mainText = p.name || '';
+        let subTextParts = [];
+        if (p.street) subTextParts.push(p.street + (p.housenumber ? ' ' + p.housenumber : ''));
+        if (p.postcode) subTextParts.push(p.postcode);
+        if (p.city) subTextParts.push(p.city);
+        else if (p.state) subTextParts.push(p.state);
+
+        const subText = subTextParts.join(', ');
+        if (!mainText && subText) {
+          mainText = subText;
+          subText = p.country || '';
+        }
+
+        const fullStr = mainText + (subText ? ', ' + subText : '');
+        return `<div class="addr-ac-item" onclick="selectAcItem('${input.id}', '${escHtml(fullStr)}')">
+                  ${escHtml(mainText)}
+                  ${subText ? `<small>${escHtml(subText)}</small>` : ''}
+                </div>`;
+      }).join('');
+
+      dropdown.classList.add('visible');
+    } catch (e) {
+      console.error('Autocomplete error', e);
+    }
+  }, 350);
+}
+
+function selectAcItem(inputId, value) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.value = value;
+    const dropdown = input.nextElementSibling;
+    if (dropdown) dropdown.classList.remove('visible');
+  }
+}
+
+// Init on load
+document.addEventListener('DOMContentLoaded', initAddrAutocomplete);
