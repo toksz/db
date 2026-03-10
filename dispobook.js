@@ -127,7 +127,7 @@ function rebuildDatalist(id, items) {
 // ─── File Handling ────────────────────────────────────────────────────────────
 async function pickFile() {
   try {
-    [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+    [fileHandle] = await window.showOpenFilePicker({ id: 'dispobook_data', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
     const file = await fileHandle.getFile();
     db = JSON.parse(await file.text());
     lastSavedVersion = db.version;
@@ -136,7 +136,7 @@ async function pickFile() {
 }
 async function createNewFile() {
   try {
-    fileHandle = await window.showSaveFilePicker({ suggestedName: 'data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+    fileHandle = await window.showSaveFilePicker({ id: 'dispobook_data', suggestedName: 'data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
     db = { version: Date.now(), niederlassungen: ['Haupt'], tours: { 'Haupt': {} }, deletedTours: {}, stammdaten: { fahrer: [], fahrzeuge: [], frachtfuehrer: [], adressen: [] } };
     await saveFile(); lastSavedVersion = db.version; initApp();
   } catch (e) { if (e.name !== 'AbortError') toast('Fehler beim Erstellen: ' + e.message, 'error'); }
@@ -150,7 +150,7 @@ async function saveFile() {
     lastSavedVersion = db.version; setSyncStatus('saved');
   } catch { setSyncStatus('error'); toast('Fehler beim Speichern!', 'error'); }
 }
-function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveFile, 600); }
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveFile, 100); }
 async function pollFile() {
   if (!fileHandle) return;
   try {
@@ -774,12 +774,12 @@ function saveTourDetail() {
   tourObj.attachments = currentAttachments;
 
   // Manual frachtpreis & dates
-  const p = parseFloat(document.getElementById('detailFrachtpreis').value);
+  const p = parseFloat(document.getElementById('detailFrachtpreis')?.value);
   tourObj.frachtpreis = isNaN(p) ? null : p;
-  tourObj.liefertermin = document.getElementById('detailLiefertermin').value || null;
-  tourObj.ladebereit_ab = document.getElementById('detailLadebereit').value || null;
-  tourObj.verladen_am = document.getElementById('detailVerladen').value || null;
-  tourObj.besonderheiten = document.getElementById('detailBesonderheiten').value.trim() || null;
+  tourObj.liefertermin = document.getElementById('detailLiefertermin')?.value || null;
+  tourObj.ladebereit_ab = document.getElementById('detailLadebereit')?.value || null;
+  tourObj.verladen_am = document.getElementById('detailVerladen')?.value || null;
+  tourObj.besonderheiten = document.getElementById('detailBesonderheiten')?.value.trim() || null;
 
   const selectedSwatch = document.querySelector('#detailColorPicker .color-swatch.selected');
   tourObj.farbe = selectedSwatch ? selectedSwatch.getAttribute('title') !== 'Keine'
@@ -1053,7 +1053,9 @@ function executeImport() {
     db.tours[nl][dateKey].pending.push({ id: uid(), name, created: Date.now(), updated: Date.now() });
     added++;
   }
-  closeModal('importModal'); currentNL = nl; scheduleSave(); render();
+  closeModal('importModal'); currentNL = nl;
+  db.version = Date.now(); // Force version change
+  scheduleSave(); render();
   toast(`${added} Touren importiert`, 'success');
 }
 
@@ -1433,7 +1435,14 @@ async function handlePdfUpload(event) {
     // Layout activate
     modalContent.classList.add('split-active');
     document.getElementById('pdfSideKI').style.display = 'block';
-    iframe.src = base64Data;
+
+    // Use Object URL for better browser rendering and append parameters to hide toolbars
+    if (iframe.src && iframe.src.startsWith('blob:')) {
+      URL.revokeObjectURL(iframe.src.split('#')[0]);
+    }
+    const objectUrl = URL.createObjectURL(file);
+    iframe.src = objectUrl + "#toolbar=0&navpanes=0&view=FitH";
+
     spinner.style.display = 'flex';
     openModal('tourDetailModal');
 
@@ -1463,7 +1472,7 @@ async function callGeminiAPI(base64Data) {
     body: JSON.stringify({
       contents: [{
         parts: [
-          { text: "Du bist ein Disponent einer Spedition. Extrahiere die Frachtdaten aus dem PDF in das angegebene JSON-Schema. Konvertiere LDM zu der Property 'lademeter', Gewicht (kg) zu 'gesamtgewicht'. Anzahl zu 'anzahl', Abmessungen zu 'lxbxh', Transportnummer/Tournummer zu 'transportnummer', Ladeadresse/Übernahme zu 'startort' oder 'absender', Empfangsadresse zu 'empfaenger', Auftragsnummer/Refnr zu 'referenznummer'." },
+          { text: "Du bist ein erfahrener Disponent. Extrahiere die Frachtdaten aus dem PDF in das JSON-Schema.\n1. 'bezeichnung': Benenne die Tour nach dem Lieferort/Empfangsort (z.B. 'Berlin' oder 'Hub Egelsbach').\n2. 'startort': Nimm standardmäßig die Absender-Adresse (Firma + Ort), falls nicht anders angegeben.\n3. 'fahrer' & 'fahrzeug': Extrahiere Fahrername und Kennzeichen, falls auf dem Dokument vorhanden (z.B. 'Fahrer: Armin', 'Zugfzg: GI-ST 123').\n4. 'liefertermin' & 'verladen': Extrahiere Zustelltermin/Liefertermin (als ISO-Datum YYYY-MM-DDTHH:MM falls möglich) und Verladetermin.\n5. 'sendungspositionen': Mache die Extraktion intelligenter. 'bezeichnung' soll die Verpackungsart und Warenbezeichnung enthalten (z.B. 'Euro-Flachpalette Brot'). 'anzahl' die Menge. 'gewicht' das Gewicht in kg. 'l', 'b', 'h' (in mm) falls Abmessungen vorhanden sind (Länge, Breite, Höhe).\n6. 'lademeter', 'gesamtgewicht', 'transportnummer', 'absender', 'empfaenger', 'referenznummer' wie gehabt extrahieren." },
           { inlineData: { mimeType: "application/pdf", data: base64Clean } }
         ]
       }],
@@ -1481,6 +1490,10 @@ async function callGeminiAPI(base64Data) {
             empf_rampe: { type: "STRING" },
             empf_zeitfenster: { type: "STRING" },
             referenznummer: { type: "STRING" },
+            fahrer: { type: "STRING" },
+            fahrzeug: { type: "STRING" },
+            liefertermin: { type: "STRING" },
+            verladen: { type: "STRING" },
             gesamtgewicht: { type: "NUMBER" },
             lademeter: { type: "NUMBER" },
             sendungspositionen: {
@@ -1491,7 +1504,9 @@ async function callGeminiAPI(base64Data) {
                   anzahl: { type: "NUMBER" },
                   bezeichnung: { type: "STRING" },
                   gewicht: { type: "NUMBER" },
-                  lxbxh: { type: "STRING" }
+                  l: { type: "NUMBER" },
+                  b: { type: "NUMBER" },
+                  h: { type: "NUMBER" }
                 }
               }
             }
@@ -1511,17 +1526,32 @@ function applyKiDataToForm(ki) {
   const mapStr = {
     detailName: ki.bezeichnung || 'Neue Tour aus PDF',
     detailTransportnummer: ki.transportnummer || '',
-    detailStartort: ki.startort || '',
+    detailStartort: ki.startort || ki.absender || '',
     detailAbsender: ki.absender || '',
     detailEmpfaenger: ki.empfaenger || '',
     detailEmpfAnsprechpartner: ki.empf_ansprechpartner || '',
     detailEmpfRampe: ki.empf_rampe || '',
     detailEmpfZeitfenster: ki.empf_zeitfenster || '',
-    detailReferenznummer: ki.referenznummer || ''
+    detailReferenznummer: ki.referenznummer || '',
+    detailFahrer: ki.fahrer || '',
+    detailFahrzeug: ki.fahrzeug || ''
   };
   for (const [id, val] of Object.entries(mapStr)) {
     const el = document.getElementById(id);
     if (el && val) el.value = val;
+  }
+
+  if (ki.liefertermin) {
+    try {
+      const d = new Date(ki.liefertermin);
+      if (!isNaN(d.getTime())) document.getElementById('detailLiefertermin').value = d.toISOString().slice(0, 16);
+    } catch (e) { }
+  }
+  if (ki.verladen) {
+    try {
+      const d = new Date(ki.verladen);
+      if (!isNaN(d.getTime())) document.getElementById('detailVerladen').value = d.toISOString().slice(0, 16);
+    } catch (e) { }
   }
 
   editingStagingId = uid();
@@ -1531,10 +1561,13 @@ function applyKiDataToForm(ki) {
   if (ki.sendungspositionen && ki.sendungspositionen.length > 0) {
     currentPositions = ki.sendungspositionen.map(p => ({
       id: uid(),
-      anz: p.anzahl || 1,
+      anzahl: p.anzahl || 1,
       bez: p.bezeichnung || '',
       kg: p.gewicht || null,
-      lxbxh: p.lxbxh || ''
+      l: p.l || null,
+      b: p.b || null,
+      h: p.h || null,
+      ldm: 0
     }));
     renderPositions();
   }

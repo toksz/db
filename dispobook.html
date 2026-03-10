@@ -21,9 +21,8 @@
   <div class="file-setup" id="fileSetup">
     <div class="file-setup-box">
       <img class="file-setup-logo" src="strieder-logo.png" alt="Strieder Logo">
-      <div class="file-setup-title">DispoBook</div>
-      <div class="file-setup-sub">Verwalten Sie Ihre Dispositionen effizient und übersichtlich.<br>Wählen Sie eine
-        Datei, um zu beginnen.</div>
+      <div class="file-setup-title">Digitales Dispobuch</div>
+      <div class="file-setup-sub">Willkommen! Wählen Sie eine Datei, um zu beginnen.</div>
       <div class="file-setup-actions">
         <button class="file-setup-btn primary" onclick="pickFile()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -188,6 +187,16 @@
             </div>
           </div>
 
+          <button class="btn-export" onclick="openImportModal()" title="Daten importieren">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Importieren
+          </button>
+
           <button class="btn-export" onclick="handleExport()" title="Als Excel exportieren">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
               stroke-linecap="round">
@@ -306,15 +315,7 @@
             </svg></span>
           Niederlassung hinzufügen
         </button>
-        <button class="modal-menu-item" onclick="openImportModal(); closeModal('fileMenu');">
-          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg></span>
-          Daten importieren
-        </button>
+
         <div class="menu-section-divider"></div>
         <div class="menu-section-label">Einstellungen</div>
         <button class="modal-menu-item" onclick="promptGeminiApiKey(); closeModal('fileMenu');">
