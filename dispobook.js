@@ -126,13 +126,54 @@ function rebuildDatalist(id, items) {
   dl.innerHTML = items.map(v => `<option value="${escHtml(v)}">`).join('');
 }
 
-// ─── File Handling ────────────────────────────────────────────────────────────
+// ─── File Handling ─────────────────────────────────────────────────────────────────
+// IndexedDB helpers for persisting the FileSystemFileHandle across page reloads
+const IDB_NAME = 'dispobook', IDB_STORE = 'handles', IDB_KEY = 'lastFileHandle';
+const HANDLE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+function openIDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = e => rej(e.target.error);
+  });
+}
+async function saveHandleToIDB(handle) {
+  try {
+    const db_ = await openIDB();
+    const tx = db_.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put({ handle, savedAt: Date.now() }, IDB_KEY);
+  } catch (_) { }
+}
+async function loadHandleFromIDB() {
+  try {
+    const db_ = await openIDB();
+    return new Promise((res) => {
+      const tx = db_.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+      req.onsuccess = e => {
+        const r = e.target.result;
+        if (r && (Date.now() - r.savedAt) < HANDLE_TTL_MS) res(r.handle);
+        else res(null);
+      };
+      req.onerror = () => res(null);
+    });
+  } catch (_) { return null; }
+}
+async function clearHandleFromIDB() {
+  try {
+    const db_ = await openIDB();
+    const tx = db_.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(IDB_KEY);
+  } catch (_) { }
+}
 async function pickFile() {
   try {
     [fileHandle] = await window.showOpenFilePicker({ id: 'dispobook_data', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
     const file = await fileHandle.getFile();
     db = JSON.parse(await file.text());
     lastSavedVersion = db.version;
+    await saveHandleToIDB(fileHandle);
     initApp();
   } catch (e) { if (e.name !== 'AbortError') toast('Fehler beim Öffnen: ' + e.message, 'error'); }
 }
@@ -140,8 +181,50 @@ async function createNewFile() {
   try {
     fileHandle = await window.showSaveFilePicker({ id: 'dispobook_data', suggestedName: 'data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
     db = { version: Date.now(), niederlassungen: ['Haupt'], tours: { 'Haupt': {} }, deletedTours: {}, stammdaten: { fahrer: [], fahrzeuge: [], frachtfuehrer: [], adressen: [] } };
+    await saveHandleToIDB(fileHandle);
     await saveFile(); lastSavedVersion = db.version; initApp();
   } catch (e) { if (e.name !== 'AbortError') toast('Fehler beim Erstellen: ' + e.message, 'error'); }
+}
+// Try to restore a previously used file handle on page load
+async function tryRestoreHandle() {
+  const handle = await loadHandleFromIDB();
+  if (!handle) return;
+  try {
+    // Re-request permission without a user gesture — works in Chrome if still granted
+    const perm = await handle.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') {
+      fileHandle = handle;
+      const file = await fileHandle.getFile();
+      db = JSON.parse(await file.text());
+      lastSavedVersion = db.version;
+      initApp();
+      return;
+    }
+    // Permission not automatically granted — show a minimal "Resume" button
+    showResumeButton(handle);
+  } catch (_) { clearHandleFromIDB(); }
+}
+function showResumeButton(handle) {
+  const box = document.getElementById('file-setup-box') || document.querySelector('.file-setup-box');
+  if (!box) return;
+  const btn = document.createElement('button');
+  btn.className = 'file-setup-btn primary';
+  btn.style.marginTop = '12px';
+  btn.innerHTML = `▶ Zuletzt geöffnete Datei fortsetzen`;
+  btn.onclick = async () => {
+    try {
+      const perm = await handle.requestPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        fileHandle = handle;
+        const file = await fileHandle.getFile();
+        db = JSON.parse(await file.text());
+        lastSavedVersion = db.version;
+        await saveHandleToIDB(fileHandle);
+        initApp();
+      }
+    } catch (_) { }
+  };
+  box.appendChild(btn);
 }
 async function saveFile() {
   if (!fileHandle) return;
@@ -717,6 +800,11 @@ function addPromptGoDetail() {
   }
   document.getElementById('detailStatus').value = 'pending';
   renderColorPicker('');
+  // Show date picker for staging - default to today
+  const dateWrap = document.getElementById('detailDateWrap');
+  const dateInp = document.getElementById('detailDate');
+  if (dateWrap) dateWrap.style.display = '';
+  if (dateInp) dateInp.value = fmt(new Date());
 
   const modalContent = document.querySelector('#tourDetailModal .modal-content-detail');
   if (modalContent) modalContent.classList.remove('split-active');
@@ -732,6 +820,7 @@ function addPromptGoDetail() {
 function openTourDetail(id) {
   const found = findTour(id);
   if (!found) return;
+  // openTourDetail: hide date picker (date is already fixed by placement)
   editingTourId = id;
   const { tour, status } = found;
   const map = {
@@ -747,6 +836,9 @@ function openTourDetail(id) {
     const el = document.getElementById(fid);
     if (el) el.value = val || '';
   }
+  // Hide date picker for existing tours
+  const dateWrap = document.getElementById('detailDateWrap');
+  if (dateWrap) dateWrap.style.display = 'none';
   const dtFields = { detailLiefertermin: tour.liefertermin, detailLadebereit: tour.ladebereit_ab, detailVerladen: tour.verladen_am };
   for (const [fid, val] of Object.entries(dtFields)) {
     const el = document.getElementById(fid);
@@ -857,6 +949,15 @@ function saveTourDetail() {
 
   editingStagingId = null;
   closeModal('tourDetailModal');
+  // ─ If this was a KI staging tour, place it directly into db.tours ─
+  if (!editingTourId) {
+    const dateKey = document.getElementById('detailDate')?.value || fmt(new Date());
+    if (!db.tours[currentNL]) db.tours[currentNL] = {};
+    if (!db.tours[currentNL][dateKey]) db.tours[currentNL][dateKey] = { pending: [], done: [] };
+    const status = document.getElementById('detailStatus')?.value || 'pending';
+    db.tours[currentNL][dateKey][status].push(tourObj);
+  }
+  db.version = Date.now();
   scheduleSave(); render();
   toast('Tour gespeichert', 'success');
 }
@@ -1611,6 +1712,21 @@ function applyKiDataToForm(ki) {
   editingStagingId = uid();
   stagingTours.push({ id: editingStagingId, name: mapStr.detailName });
   editingTourId = null;
+
+  // Pre-fill & show the date picker - use liefertermin date or today
+  const dateWrap = document.getElementById('detailDateWrap');
+  const dateInp = document.getElementById('detailDate');
+  if (dateWrap) dateWrap.style.display = '';
+  if (dateInp) {
+    let defaultDate = fmt(new Date());
+    if (ki.liefertermin) {
+      try {
+        const d = new Date(ki.liefertermin);
+        if (!isNaN(d.getTime())) defaultDate = fmt(d);
+      } catch (_) { }
+    }
+    dateInp.value = defaultDate;
+  }
 
   if (ki.sendungspositionen && ki.sendungspositionen.length > 0) {
     currentPositions = ki.sendungspositionen.map(p => ({

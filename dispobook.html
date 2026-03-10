@@ -394,16 +394,20 @@
         </div>
         <div class="modal-form-side" id="tourDetailFormSide">
 
-          <!-- Row 1: Bezeichnung + Transportnummer + Status -->
-          <div class="detail-row detail-row-name">
-            <div class="detail-field" style="flex:2">
+          <!-- Row 1: Name + TR-Nr + Status + Date (for staging/AI tours) -->
+          <div class="detail-row" style="display:flex;gap:10px;flex-wrap:wrap">
+            <div class="detail-field" style="flex:2;min-width:160px">
               <label class="modal-label" for="detailName">Bezeichnung<span class="required-star"
                   aria-hidden="true">*</span></label>
               <input class="modal-input" type="text" id="detailName" placeholder="z.B. Hamburg, Kundenbesuch…" required>
             </div>
-            <div class="detail-field" style="flex:1">
+            <div class="detail-field" style="flex:1;min-width:120px">
               <label class="modal-label">Strieder Transportnr.</label>
               <input class="modal-input" type="text" id="detailTransportnummer" placeholder="TR-…">
+            </div>
+            <div class="detail-field detail-field-narrow" id="detailDateWrap" style="flex:1;min-width:130px">
+              <label class="modal-label">Tag / Datum</label>
+              <input class="modal-input" type="date" id="detailDate">
             </div>
             <div class="detail-field detail-field-narrow">
               <label class="modal-label">Status</label>
@@ -864,5 +868,6 @@
     </div>
   </div>
 </body>
+<script>document.addEventListener('DOMContentLoaded', () => { if (typeof tryRestoreHandle === 'function') tryRestoreHandle(); });</script>
 
 </html>
